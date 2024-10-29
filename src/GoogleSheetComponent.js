@@ -33,17 +33,28 @@ const GoogleSheetComponent = () => {
         })
         .then(() => {
           const authInstance = gapi.auth2.getAuthInstance();
-          setIsSignedIn(authInstance.isSignedIn.get());
-          if (authInstance.isSignedIn.get()) {
+          const isUserSignedIn = authInstance.isSignedIn.get();
+          setIsSignedIn(isUserSignedIn);
+
+          if (isUserSignedIn) {
             loadSheetData();
           } else {
-            authInstance.signIn().then(loadSheetData);
+            authInstance.signIn().then(() => {
+              setIsSignedIn(true);
+              loadSheetData();
+            });
           }
         });
     };
 
     gapi.load("client:auth2", initClient);
   }, []);
+
+  useEffect(() => {
+    if (isSignedIn && !data) {
+      loadSheetData();
+    }
+  }, [isSignedIn]);
 
   const loadSheetData = () => {
     gapi.client.sheets.spreadsheets.values
@@ -120,19 +131,18 @@ const GoogleSheetComponent = () => {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  {filteredData[0] &&
-                    filteredData[0].map((header, index) => (
-                      <th key={index} className={styles.header}>
+                  {filteredData[0]?.map((header, index) => (
+                      <th key={`${header}-${index}`} className={styles.header}>
                         {header}
                       </th>
                     ))}
                 </tr>
               </thead>
               <tbody>
-                {filteredData.slice(1).map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                {filteredData.slice(1).map((row) => (
+                  <tr key={row.join('-')}>
                     {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className={styles.cell}>
+                      <td key={`${row.join('-')}-${cellIndex}`} className={styles.cell}>
                         {cell}
                       </td>
                     ))}
