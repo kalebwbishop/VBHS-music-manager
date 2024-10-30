@@ -9,7 +9,7 @@ const CLIENT_ID = process.env.REACT_APP_CLIENT_ID;
 const API_KEY = process.env.REACT_APP_API_KEY;
 const SCOPES = "https://www.googleapis.com/auth/spreadsheets.readonly";
 const SHEET_ID = process.env.REACT_APP_SHEET_ID;
-const RANGE = "Sheet1!A1:Z1000";
+const RANGE = "Sheet1";
 
 const GoogleSheetComponent = () => {
   const [data, setData] = useState(null);
