@@ -53,12 +53,14 @@
   top: 0;
   height: 100vh;
   width: 300px; /* Adjust width as needed */
+  max-width: 50%;
   background-color: #f4f4f4;
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
   transform: translateX(100%);
   transition: transform 0.3s ease;
   z-index: 1000;
   padding: 20px;
+  overflow-y: auto;
 }
 
 .sidebar.show {
@@ -67,6 +69,7 @@
 
 .containerSidebarOpen {
   width: calc(100% - 350px);
+  min-width: calc(50% - 45px);
 }
 
 .closeButton {
