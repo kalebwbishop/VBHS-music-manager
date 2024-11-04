@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { gapi } from "gapi-script";
+
+import StudentSearch from "./StudentSearch";
 import EmailComponent from "./EmailComponent";
 import ExportComponent from "./ExportComponent";
 import FilterComponent from "./FilterComponent";
@@ -21,6 +23,7 @@ const GoogleSheetComponent = () => {
   const [isSignedIn, setIsSignedIn] = useState(true); // Change to false to test sign in
   const [showSidebar, setShowSidebar] = useState(false);
   const [sidebarContent, setSidebarContent] = useState("");
+  const [sidebarContentIndex, setSidebarContentIndex] = useState(0);
 
   const headerRef = useRef(null);
 
@@ -83,6 +86,7 @@ const GoogleSheetComponent = () => {
   const closeSidebar = () => {
     setShowSidebar(false);
     setSidebarContent("");
+    setSidebarContentIndex(0);
   };
 
   return (
@@ -96,29 +100,41 @@ const GoogleSheetComponent = () => {
           <div ref={headerRef} className={styles.headerContainer}>
             <h2 className={styles.headerTitle}>VBHS Music Manager</h2>
             <div className={styles.buttonGroup}>
+              <StudentSearch data={data} setFilteredData={setFilteredData} sidebarContentIndex={sidebarContentIndex} />
+              {/* <input
+                onChange={(event) => {
+                  StudentSearch(data, setFilteredData, event.target.value);
+                }}
+                style={{ display: sidebarContentIndex == 1 ? "none" : "block" }}
+                type="text"
+                placeholder="Search For Student..."
+              ></input> */}
               <button
-                onClick={() =>
+                onClick={() => {
                   handleButtonClick(
                     <FilterComponent
                       data={data}
                       setFilteredData={setFilteredData}
                     />
-                  )
-                }
+                  );
+                  setSidebarContentIndex(1);
+                }}
               >
                 Filter
               </button>
               <button
-                onClick={() =>
-                  handleButtonClick(<EmailComponent data={filteredData} />)
-                }
+                onClick={() => {
+                  handleButtonClick(<EmailComponent data={filteredData} />);
+                  setSidebarContentIndex(2);
+                }}
               >
                 Email
               </button>
               <button
-                onClick={() =>
-                  handleButtonClick(<ExportComponent data={filteredData} />)
-                }
+                onClick={() => {
+                  handleButtonClick(<ExportComponent data={filteredData} />);
+                  setSidebarContentIndex(3);
+                }}
               >
                 Export
               </button>

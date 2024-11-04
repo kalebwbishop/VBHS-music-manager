@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 function FilterComponent({ data, setFilteredData }) {
   const [filters, setFilters] = useState([]);
@@ -49,8 +49,6 @@ function FilterComponent({ data, setFilteredData }) {
     const headerRow = data[0];
     const dataRows = data.slice(1);
 
-    console.log(filtersToApply);
-
     // Apply filters only to the data rows
     const filteredDataRows = dataRows.filter((row) => {
       return filtersToApply.every((filter) => {
@@ -94,6 +92,10 @@ function FilterComponent({ data, setFilteredData }) {
 
     setFilteredData(filteredData);
   };
+
+  useEffect(() => {
+    applyFilters(filters);
+  }, [data]);
 
   return (
     <div>
