@@ -16,20 +16,23 @@ function StudentSearch({ data, setFilteredData, sidebarContentIndex }) {
         return true;
       }
 
-      const firstNameColumn = parseInt(settings.firstNameColumn, 10) - 1;
-      const lastNameColumn = parseInt(settings.lastNameColumn, 10) - 1;
+      const firstNameColumn = settings?.firstNameColumn || "Student First";
+      const lastNameColumn = settings?.lastNameColumn || "Student Last";
+
+      const firstNameIndex = headerRow.indexOf(firstNameColumn);
+      const lastNameIndex = headerRow.indexOf(lastNameColumn);
 
       // Check if the first, last, or full name contains the search value
-      const firstName = dataRow[firstNameColumn]
+      const firstName = dataRow[firstNameIndex]
         .toLowerCase()
         .includes(searchValue.toLowerCase());
-      const lastName = dataRow[lastNameColumn]
+      const lastName = dataRow[lastNameIndex]
         .toLowerCase()
         .includes(searchValue.toLowerCase());
       const fullName = (
-        dataRow[firstNameColumn].toLowerCase() +
+        dataRow[firstNameIndex].toLowerCase() +
         " " +
-        dataRow[lastNameColumn].toLowerCase()
+        dataRow[lastNameIndex].toLowerCase()
       ).includes(searchValue.toLowerCase());
 
       return firstName || lastName || fullName;
