@@ -29,6 +29,23 @@ function ExportComponent({ data }) {
     });
   };
 
+  const handleSelectAll = () => {
+    if (selectedColumns.length === data[0].length) {
+      // Deselect all columns
+      setSelectedColumns([]);
+      document.cookie = `selectedExportColumns=${encodeURIComponent(
+        JSON.stringify([])
+      )}; path=/; max-age=31536000`;
+    } else {
+      // Select all columns
+      const allColumns = data[0].map((_, index) => index);
+      setSelectedColumns(allColumns);
+      document.cookie = `selectedExportColumns=${encodeURIComponent(
+        JSON.stringify(allColumns)
+      )}; path=/; max-age=31536000`;
+    }
+  };
+
   const handleButtonClick = () => {
     // Filter data to include only selected columns
     const filteredData = data.map((row) =>
@@ -62,6 +79,9 @@ function ExportComponent({ data }) {
     <div>
       <h3>Export</h3>
       <p>Select the columns to include in the export:</p>
+      <button onClick={handleSelectAll}>
+        {selectedColumns.length === data[0].length ? "Deselect All" : "Select All"}
+      </button>
       {data[0].map((header, index) => (
         <div key={index}>
           <label>

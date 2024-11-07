@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import PropTypes from "prop-types";
 
 function StudentSearch({ data, setFilteredData, sidebarContentIndex }) {
+  const settings = useSelector((state) => state.settings.value);
+
   const [searchValue, setSearchValue] = useState("");
 
   const applyFilter = () => {
@@ -12,17 +16,20 @@ function StudentSearch({ data, setFilteredData, sidebarContentIndex }) {
         return true;
       }
 
+      const firstNameColumn = parseInt(settings.firstNameColumn, 10) - 1;
+      const lastNameColumn = parseInt(settings.lastNameColumn, 10) - 1;
+
       // Check if the first, last, or full name contains the search value
-      const firstName = dataRow[0]
+      const firstName = dataRow[firstNameColumn]
         .toLowerCase()
         .includes(searchValue.toLowerCase());
-      const lastName = dataRow[1]
+      const lastName = dataRow[lastNameColumn]
         .toLowerCase()
         .includes(searchValue.toLowerCase());
       const fullName = (
-        dataRow[0].toLowerCase() +
+        dataRow[firstNameColumn].toLowerCase() +
         " " +
-        dataRow[1].toLowerCase()
+        dataRow[lastNameColumn].toLowerCase()
       ).includes(searchValue.toLowerCase());
 
       return firstName || lastName || fullName;
@@ -35,7 +42,7 @@ function StudentSearch({ data, setFilteredData, sidebarContentIndex }) {
 
   useEffect(() => {
     applyFilter();
-  }, [data, searchValue, sidebarContentIndex]);
+  }, [data, searchValue]);
 
   return (
     <input
@@ -48,5 +55,11 @@ function StudentSearch({ data, setFilteredData, sidebarContentIndex }) {
     />
   );
 }
+
+StudentSearch.propTypes = {
+  data: PropTypes.array.isRequired,
+  setFilteredData: PropTypes.func.isRequired,
+  sidebarContentIndex: PropTypes.number.isRequired,
+};
 
 export default StudentSearch;

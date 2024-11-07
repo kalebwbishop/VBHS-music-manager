@@ -1,11 +1,11 @@
 import React from "react";
 import "./App.css";
-import GoogleSheetComponent from "./GoogleSheetComponent";
+import Home from "./pages/Home";
 
 function App() {
   return (
     <div style={{ padding: 10 }}>
-      <GoogleSheetComponent />
+      <Home />
     </div>
   );
 }
