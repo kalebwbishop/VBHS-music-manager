@@ -19,8 +19,18 @@ function StudentSearch({ data, setFilteredData, sidebarContentIndex }) {
       const firstNameColumn = settings?.firstNameColumn || "Student First";
       const lastNameColumn = settings?.lastNameColumn || "Student Last";
 
-      const firstNameIndex = headerRow.indexOf(firstNameColumn);
-      const lastNameIndex = headerRow.indexOf(lastNameColumn);
+      let firstNameIndex = headerRow.indexOf(firstNameColumn);
+      let lastNameIndex = headerRow.indexOf(lastNameColumn);
+
+      if (firstNameIndex === -1) {
+        firstNameIndex = 0;
+      }
+
+      if (lastNameIndex === -1) {
+        lastNameIndex = 1;
+      }
+
+      console.log(firstNameIndex, lastNameIndex);
 
       // Check if the first, last, or full name contains the search value
       const firstName = dataRow[firstNameIndex]
@@ -52,7 +62,7 @@ function StudentSearch({ data, setFilteredData, sidebarContentIndex }) {
       onChange={(event) => {
         setSearchValue(event.target.value);
       }}
-      style={{ display: sidebarContentIndex == 1 ? "none" : "block" }}
+      style={{ display: sidebarContentIndex === 1 ? "none" : "block" }}
       type="text"
       placeholder="Search For Student..."
     />
