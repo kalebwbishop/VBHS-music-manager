@@ -3,12 +3,13 @@ import { gapi } from "gapi-script";
 import { useSelector, useDispatch } from "react-redux";
 
 import StudentSearch from "./StudentSearch";
-import EmailComponent from "./EmailComponent";
-import ExportComponent from "./ExportComponent";
-import FilterComponent from "./FilterComponent";
 import SettingsComponent from "./SettingsComponent";
+import EmailExportComponent from "./EmailExportComponent";
+
+import MultiStepSidebar from "./MultiStepSidebar";
 
 import styles from "./GoogleSheetComponent.module.css";
+import { set } from "./features/settings/SettingsSlice";
 
 const CLIENT_ID = process.env.REACT_APP_CLIENT_ID;
 const API_KEY = process.env.REACT_APP_API_KEY;
@@ -22,10 +23,11 @@ const GoogleSheetComponent = () => {
   );
 
   const [data, setData] = useState(testData); // Change to null to test loading
-  const [filteredData, setFilteredData] = useState(testData); // Change to null to test loading
+  const [displayData, setDisplayData] = useState(testData); // Change to null to test loading
   const [isSignedIn, setIsSignedIn] = useState(true); // Change to false to test sign in
   const [showSidebar, setShowSidebar] = useState(false);
   const [sidebarContent, setSidebarContent] = useState("");
+  const [sidebarTitle, setSidebarTitle] = useState("");
   const [sidebarContentIndex, setSidebarContentIndex] = useState(0);
 
   const headerRef = useRef(null);
@@ -95,9 +97,8 @@ const GoogleSheetComponent = () => {
 
   return (
     <div
-      className={`${styles.container} ${
-        showSidebar ? styles.containerSidebarOpen : ""
-      }`}
+      className={`${styles.container} ${showSidebar ? styles.containerSidebarOpen : ""
+        }`}
     >
       {isSignedIn && data ? (
         <div>
@@ -106,42 +107,23 @@ const GoogleSheetComponent = () => {
             <div className={styles.buttonGroup}>
               <StudentSearch
                 data={data}
-                setFilteredData={setFilteredData}
+                setDisplayData={setDisplayData}
                 sidebarContentIndex={sidebarContentIndex}
               />
               <button
                 onClick={() => {
-                  handleButtonClick(
-                    <FilterComponent
-                      data={data}
-                      setFilteredData={setFilteredData}
-                    />
-                  );
+                  handleButtonClick(<EmailExportComponent data={data} setDisplayData={setDisplayData} />);
+                  setSidebarTitle("Email/Export");
                   setSidebarContentIndex(1);
                 }}
               >
-                Filter
+                Email/Export
               </button>
               <button
                 onClick={() => {
-                  handleButtonClick(<EmailComponent data={filteredData} />);
+                  handleButtonClick(<SettingsComponent data={data} />);
+                  setSidebarTitle("Settings");
                   setSidebarContentIndex(2);
-                }}
-              >
-                Email
-              </button>
-              <button
-                onClick={() => {
-                  handleButtonClick(<ExportComponent data={filteredData} />);
-                  setSidebarContentIndex(3);
-                }}
-              >
-                Export
-              </button>
-              <button
-                onClick={() => {
-                  handleButtonClick(<SettingsComponent data={data}/>);
-                  setSidebarContentIndex(3);
                 }}
               >
                 Settings
@@ -151,15 +133,14 @@ const GoogleSheetComponent = () => {
           <div
             className={styles.tableContainer}
             style={{
-              maxHeight: `calc(95vh - ${
-                headerRef?.current?.offsetHeight || 0
-              }px)`,
+              maxHeight: `calc(95vh - ${headerRef?.current?.offsetHeight || 0
+                }px)`,
             }}
           >
             <table className={styles.table}>
               <thead>
                 <tr>
-                  {filteredData[0]?.map((header, index) => (
+                  {displayData[0]?.map((header, index) => (
                     <th key={`${header}-${index}`} className={styles.header}>
                       {header}
                     </th>
@@ -167,7 +148,7 @@ const GoogleSheetComponent = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredData.slice(1).map((row) => (
+                {displayData.slice(1).map((row) => (
                   <tr key={row.join("-")}>
                     {row.map((cell, cellIndex) => (
                       <td
@@ -185,14 +166,7 @@ const GoogleSheetComponent = () => {
           <p>Sheet1</p>
 
           {/* Sidebar Component */}
-          <div
-            className={`${styles.sidebar} ${showSidebar ? styles.show : ""}`}
-          >
-            <button className={styles.closeButton} onClick={closeSidebar}>
-              ×
-            </button>
-            <div className={styles.sidebarContent}>{sidebarContent}</div>
-          </div>
+          <MultiStepSidebar title={sidebarTitle} sidebarContent={sidebarContent} showSidebar={showSidebar} closeSidebar={closeSidebar} />
         </div>
       ) : (
         <p>Signing in...</p>

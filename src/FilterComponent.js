@@ -41,8 +41,6 @@ function FilterComponent({ data, setFilteredData }) {
 
     setJSONCookie("selectedFilters", updatedFilters);
     setFilters(updatedFilters);
-
-    console.log(updatedFilters);
   };
 
   const deleteFilter = (index) => {
@@ -73,7 +71,7 @@ function FilterComponent({ data, setFilteredData }) {
         }
 
         const cellValue = row[columnIndex];
-        
+
         // Check if the cell matches one of the values in the filter
         if (filter.values && filter.values.length > 0) {
           return filter.values.includes(cellValue);
@@ -82,34 +80,8 @@ function FilterComponent({ data, setFilteredData }) {
       });
     });
 
-    // Sort the data based on the order of filters
-    const sortedDataRows = [...filteredDataRows].sort((a, b) => {
-      for (const filter of filters) {
-        const columnIndex = filter.column;
-
-        const valueA = a[columnIndex];
-        const valueB = b[columnIndex];
-
-        // Attempt to transform values into integers before sorting
-        const intValueA = parseInt(valueA, 10);
-        const intValueB = parseInt(valueB, 10);
-
-        if (!isNaN(intValueA) && !isNaN(intValueB)) {
-          if (intValueA < intValueB) return -1;
-          if (intValueA > intValueB) return 1;
-        } else {
-          // Fallback to string comparison if values are not integers
-          if (valueA < valueB) return -1;
-          if (valueA > valueB) return 1;
-        }
-      }
-      return 0; // if all criteria match, keep original order
-    });
-
-    // Combine the header row with the sorted data rows
-    const sortedData = [headerRow, ...sortedDataRows];
-
-    setFilteredData(sortedData);
+    // Update the filtered data state
+    setFilteredData([headerRow, ...filteredDataRows]);
   };
 
   useEffect(() => {
@@ -134,8 +106,11 @@ function FilterComponent({ data, setFilteredData }) {
           <HeaderSelection
             headers={headers}
             selectedHeader={filter.column}
-            handleOnChange={(e) =>
-              handleFilterChange(index, "column", e.target.value)
+            handleOnChange={(selectedColumnIndex) =>
+            {
+              handleFilterChange(index, "column", selectedColumnIndex)
+              console.log(selectedColumnIndex)
+            }
             }
           />
 
@@ -143,6 +118,7 @@ function FilterComponent({ data, setFilteredData }) {
           <MultiSelectOptions
             data={data}
             headerIndex={filter.column}
+            selectedValues={filter.values} // Pass the current values here
             handleOnChange={(e) =>
               handleFilterChange(index, "values", e.target.selectedOptions)
             }
@@ -168,17 +144,23 @@ FilterComponent.propTypes = {
 
 function HeaderSelection({ headers, selectedHeader, handleOnChange }) {
   const settings = useSelector((state) => state.settings.value);
+  let activeHeaders = headers;
 
-  const activeHeaders = headers.filter((header) => {
-    const headerSettings = settings?.filterColumns[header];
-    return headerSettings?.active || headerSettings === undefined;
-  });
+  if (settings?.filterColumns) {
+    activeHeaders = headers.filter((header) => {
+      const headerSettings = settings?.filterColumns[header];
+      return headerSettings?.active || headerSettings === undefined;
+    });
+  }
 
   return (
-    <select value={selectedHeader} onChange={handleOnChange}>
+    <select value={selectedHeader} onChange={(event) => {
+      const selectedColumnIndex = headers.indexOf(activeHeaders[event.target.value]);
+      handleOnChange(selectedColumnIndex);
+    }}>
       <option value="">Select Column</option>
-      {activeHeaders.map((header, i) => (
-        <option key={header} value={i}>
+      {activeHeaders.map((header, idx) => (
+        <option key={header} value={idx}>
           {header}
         </option>
       ))}
@@ -192,22 +174,18 @@ HeaderSelection.propTypes = {
   handleOnChange: PropTypes.func.isRequired,
 };
 
-function MultiSelectOptions({ data, headerIndex, handleOnChange }) {
-  const settings = useSelector((state) => state.settings.value);
-
-  const headerSettings = settings?.filterColumns[data[0][headerIndex]];
-
-  if (headerSettings?.type === "sort") {
-    return null;
-  }
-
+function MultiSelectOptions({ data, headerIndex, selectedValues, handleOnChange }) {
   if (headerIndex !== "") {
     const uniqueValues = [
       ...new Set(data.slice(1).map((row) => row[headerIndex])),
     ];
 
     return (
-      <select multiple={true} onChange={handleOnChange}>
+      <select
+        multiple={true}
+        onChange={handleOnChange}
+        value={selectedValues || []}
+      >
         {uniqueValues.map((value, i) => (
           <option key={value} value={value}>
             {value}
@@ -224,6 +202,7 @@ MultiSelectOptions.propTypes = {
   data: PropTypes.array.isRequired,
   headerIndex: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
     .isRequired,
+  selectedValues: PropTypes.array,
   handleOnChange: PropTypes.func.isRequired,
 };
 

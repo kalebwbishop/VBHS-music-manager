@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import PropTypes from "prop-types";
 
-function StudentSearch({ data, setFilteredData, sidebarContentIndex }) {
+function StudentSearch({ data, setDisplayData, sidebarContentIndex }) {
   const settings = useSelector((state) => state.settings.value);
 
   const [searchValue, setSearchValue] = useState("");
@@ -50,7 +50,7 @@ function StudentSearch({ data, setFilteredData, sidebarContentIndex }) {
 
     const filteredData = [headerRow, ...filteredDataRows];
 
-    setFilteredData(filteredData);
+    setDisplayData(filteredData);
   };
 
   useEffect(() => {

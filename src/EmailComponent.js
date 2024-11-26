@@ -52,7 +52,7 @@ function EmailComponent({ data }) {
   return (
     <div>
       <h3>Send Email</h3>
-      <p>Select the columns to include in the email:</p>
+      <p>Please select the columns containing the email addresses you want to use:</p>
       {data[0].map((header, index) => (
         <div key={index}>
           <label>

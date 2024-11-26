@@ -7,25 +7,17 @@ import { getJSONCookie, setJSONCookie } from "./utils/cookieUtils";
 function SettingsComponent({ data }) {
   const headers = data[0] || [];
 
-  let options = ["Option 1", "Option 2", "Option 3"];
-  const [selectedOptions, setSelectedOptions] = useState([]);
-
-  const handleSelectChange = (event) => {
-    const selectedValues = Array.from(
-      event.target.selectedOptions,
-      (option) => option.value
-    );
-    setSelectedOptions(selectedValues);
-  };
-
   const settings = useSelector((state) => state.settings.value);
   const dispatch = useDispatch();
+
+  const [filterColumns, setFilterColumns] = useState([]);
+  const [sortColumns, setSortColumns] = useState([]);
 
   useEffect(() => {
     const savedSettings = getJSONCookie("settings");
 
     if (savedSettings) {
-      dispatch(set({...settings,  ...savedSettings}));
+      dispatch(set({ ...settings, ...savedSettings }));
     }
   }, [dispatch]);
 
@@ -48,9 +40,47 @@ function SettingsComponent({ data }) {
     dispatch(set(newSettings));
   };
 
+  const handleColumnSelection = (settingsKey, selectedHeaders) => {
+    let updatedHeaders = {};
+
+    // Add all selected headers to settings
+    selectedHeaders.forEach((header) => {
+      updatedHeaders[header] = { active: true };
+    });
+
+    // Add all unselected headers to settings
+    const unselectedHeaders = headers.filter(
+      (header) => !selectedHeaders.includes(header)
+    );
+
+    unselectedHeaders.forEach((header) => {
+      updatedHeaders[header] = { active: false };
+    });
+
+    handleChange({ [settingsKey]: updatedHeaders });
+  }
+
+  useEffect(() => {
+    if (settings?.filterColumns) {
+      setFilterColumns(
+        Object.entries(settings.filterColumns)
+          .filter(([_, value]) => value.active)
+          .map(([key, _]) => key)
+      );
+    }
+
+    if (settings?.sortColumns) {
+      setSortColumns(
+        Object.entries(settings.sortColumns)
+          .filter(([_, value]) => value.active)
+          .map(([key, _]) => key)
+      );
+    }
+  }
+  , [settings]);
+
   return (
     <div>
-      <h1>Settings</h1>
       <h3>Student Search:</h3>
       <label>
         Student First Name Column
@@ -85,16 +115,19 @@ function SettingsComponent({ data }) {
         </select>
       </label>
       <h3>Filter:</h3>
-      <h3>Email:</h3>
       <label>
-        Email Columns:
+        Which columns should be filterable?
         <br />
         <select
+          style={{ height: "150px" }}
           multiple={true}
-          value={selectedOptions}
-          onChange={(event) =>
-            handleChange({ emailColumns: event.target.selectedOptions })
-          }
+          value={filterColumns ?? []}
+          onChange={(event) => {
+            const selectedValues = Array.from(event.target.selectedOptions).map(
+              (option) => option.value
+            );
+            handleColumnSelection("filterColumns", selectedValues);
+          }}
         >
           {headers.map((header) => (
             <option key={header} value={header}>
@@ -103,7 +136,28 @@ function SettingsComponent({ data }) {
           ))}
         </select>
       </label>
-      <p>Selected Options: {selectedOptions.join(", ")}</p>
+      <h3>Sort:</h3>
+      <label>
+        Which columns should be sortable?
+        <br />
+        <select
+          style={{ height: "150px" }}
+          multiple={true}
+          value={sortColumns ?? []}
+          onChange={(event) => {
+            const selectedValues = Array.from(event.target.selectedOptions).map(
+              (option) => option.value
+            );
+            handleColumnSelection("sortColumns", selectedValues);
+          }}
+        >
+          {headers.map((header) => (
+            <option key={header} value={header}>
+              {header}
+            </option>
+          ))}
+        </select>
+      </label>
     </div>
   );
 }
