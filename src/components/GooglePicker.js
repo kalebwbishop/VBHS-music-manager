@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 const CLIENT_ID = process.env.REACT_APP_CLIENT_ID;
-const API_KEY = process.env.REACT_APP_API_KEY;
+const API_KEY = process.env.REACT_APP_API_KEY; // Replace with your API Key
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
 const GooglePicker = () => {
@@ -9,36 +9,40 @@ const GooglePicker = () => {
   const [token, setToken] = useState(null);
 
   useEffect(() => {
-    // Load the Google API client
-    const loadGoogleApi = () => {
-      gapi.load('client', async () => {
-        await gapi.client.init({
+    // Load the Picker library
+    const loadPickerLibrary = () => {
+      window.gapi.load('picker', () => setPickerLoaded(true));
+    };
+
+    // Initialize Google API client
+    const initGoogleAPI = () => {
+      window.gapi.load('client', async () => {
+        await window.gapi.client.init({
           apiKey: API_KEY,
           discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
         });
-  
-        // Load the Picker library
-        gapi.load('picker', () => setPickerLoaded(true));
+        loadPickerLibrary();
       });
     };
-  
-    // Initialize GIS (Google Identity Services)
+
+    // Initialize the GIS library
     const initGIS = () => {
-      const tokenClient = google.accounts.oauth2.initTokenClient({
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
-        callback: (response) => setToken(response.access_token),
+        callback: (response) => {
+          setToken(response.access_token);
+        },
       });
-  
+
       document.getElementById('signin-button').addEventListener('click', () => {
         tokenClient.requestAccessToken();
       });
     };
-  
-    loadGoogleApi();
+
     initGIS();
+    initGoogleAPI();
   }, []);
-  
 
   const createPicker = () => {
     if (pickerLoaded && token) {
