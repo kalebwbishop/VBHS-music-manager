@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
-import { getJSONCookie, setJSONCookie } from "./utils/cookieUtils";
+import { getJSONCookie, setJSONCookie } from "../utils/cookieUtils";
 
 function FilterComponent({ data, setFilteredData }) {
   const [filters, setFilters] = useState([]);

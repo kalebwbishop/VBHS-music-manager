@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { set } from "./features/settings/SettingsSlice";
+import { set } from "../features/settings/SettingsSlice";
 
-import { getJSONCookie, setJSONCookie } from "./utils/cookieUtils";
+import { getJSONCookie, setJSONCookie } from "../utils/cookieUtils";
 
 function SettingsComponent({ data }) {
   const headers = data[0] || [];
