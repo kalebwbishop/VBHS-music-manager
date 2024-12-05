@@ -6,7 +6,7 @@ const initialState =
   {
     value: {
       filterColumns: {
-        Grade: { active: true },
+        "Grade": { active: true },
         "Parent 1 First": { active: false },
         "Parent 1 Last": { active: false },
         "Parent 1 cell": { active: false },
@@ -21,7 +21,7 @@ const initialState =
         "Student Last": { active: false }
       },
       sortColumns: {
-        Grade: { active: false },
+        "Grade": { active: true },
         "Parent 1 First": { active: false },
         "Parent 1 Last": { active: false },
         "Parent 1 cell": { active: false },
