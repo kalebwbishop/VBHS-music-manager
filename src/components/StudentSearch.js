@@ -2,20 +2,24 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import PropTypes from "prop-types";
 
-function StudentSearch({ data, setDisplayData, sidebarContentIndex }) {
+import combineSheets from "../utils/combineSheets";
+
+function StudentSearch({ allData, setDisplayData, sidebarContentIndex }) {
+  const mergedData = combineSheets(allData);
+
   const settings = useSelector((state) => state.settings.value);
 
   const [searchValue, setSearchValue] = useState("");
 
   const applyFilter = () => {
-    if (!data || data.length === 0) {
+    if (!mergedData || mergedData.length === 0) {
       return;
     }
 
-    const headerRow = data[0];
-    let dataRows = data.slice(1);
+    const headerRow = mergedData[0];
+    const dataRows = mergedData.slice(1);
 
-    let filteredDataRows = dataRows.filter((dataRow) => {
+    const filteredDataRows = dataRows.filter((dataRow) => {
       if (searchValue === "") {
         return true;
       }
@@ -39,17 +43,21 @@ function StudentSearch({ data, setDisplayData, sidebarContentIndex }) {
       }
 
       // Check if the first, last, or full name contains the search value
-      const firstName = dataRow[firstNameIndex]
+      const firstNameData = dataRow[firstNameIndex];
+      const firstName = firstNameData
+        ? firstNameData.toLowerCase().includes(searchValue.toLowerCase())
+        : false;
+
+      const lastNameData = dataRow[lastNameIndex];
+      const lastName = lastNameData
+        ? lastNameData.toLowerCase().includes(searchValue.toLowerCase())
+        : false;
+
+      const fullNameData =
+        dataRow[firstNameIndex] + " " + dataRow[lastNameIndex];
+      const fullName = fullNameData
         .toLowerCase()
         .includes(searchValue.toLowerCase());
-      const lastName = dataRow[lastNameIndex]
-        .toLowerCase()
-        .includes(searchValue.toLowerCase());
-      const fullName = (
-        dataRow[firstNameIndex].toLowerCase() +
-        " " +
-        dataRow[lastNameIndex].toLowerCase()
-      ).includes(searchValue.toLowerCase());
 
       return firstName || lastName || fullName;
     });
@@ -61,7 +69,7 @@ function StudentSearch({ data, setDisplayData, sidebarContentIndex }) {
 
   useEffect(() => {
     applyFilter();
-  }, [data, searchValue]);
+  }, [allData, searchValue]);
 
   return (
     <input
@@ -76,8 +84,8 @@ function StudentSearch({ data, setDisplayData, sidebarContentIndex }) {
 }
 
 StudentSearch.propTypes = {
-  data: PropTypes.array.isRequired,
-  setFilteredData: PropTypes.func.isRequired,
+  allData: PropTypes.array.isRequired,
+  setDisplayData: PropTypes.func.isRequired,
   sidebarContentIndex: PropTypes.number.isRequired,
 };
 

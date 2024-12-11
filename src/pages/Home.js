@@ -132,7 +132,7 @@ const Home = () => {
             <h2 className={styles.headerTitle}>VBHS Music Manager</h2>
             <div className={styles.buttonGroup}>
               <StudentSearch
-                data={allData[selectedSheetIdx]}
+                allData={allData}
                 setDisplayData={setDisplayData}
                 sidebarContentIndex={sidebarContentIndex}
               />
