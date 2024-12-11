@@ -39,7 +39,6 @@ function StudentSearch({ data, setDisplayData, sidebarContentIndex }) {
 
       // Check if the first, last, or full name contains the search value
       const firstNameData = dataRow[firstNameIndex];
-      console.log(firstNameData);
       const firstName = firstNameData
         ? firstNameData.toLowerCase().includes(searchValue.toLowerCase())
         : false;

@@ -209,8 +209,6 @@ function HeaderSelection({ headers, selectedHeader, handleOnChange }) {
   const settings = useSelector((state) => state.settings.value);
   let activeHeaders = headers;
 
-  console.log("settings", settings);
-
   if (settings?.filterColumns) {
     activeHeaders = headers.filter((header) => {
       const headerSettings = settings?.filterColumns[header];

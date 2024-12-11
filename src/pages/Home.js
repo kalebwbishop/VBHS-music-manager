@@ -20,7 +20,7 @@ const Home = () => {
   const [allData, setAllData] = useState([]);
   const [data, setData] = useState([]);
   const [displayData, setDisplayData] = useState([]);
-  const [isSignedIn, setIsSignedIn] = useState(true);
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [sidebarContent, setSidebarContent] = useState("");
   const [sidebarTitle, setSidebarTitle] = useState("");
@@ -31,33 +31,32 @@ const Home = () => {
   const headerRef = useRef(null);
   const sheetButtonsRef = useRef(null);
 
-  useEffect(() => {
-    const initClient = () => {
-      gapi.client
-        .init({
-          clientId: CLIENT_ID,
-          clientSecret: CLIENT_SECRET,
-          scope: SCOPES,
-          discoveryDocs: [
-            "https://sheets.googleapis.com/$discovery/rest?version=v4",
-          ],
-        })
-        .then(() => {
-          const authInstance = gapi.auth2.getAuthInstance();
-          const isUserSignedIn = authInstance.isSignedIn.get();
-          setIsSignedIn(isUserSignedIn);
+  const initClient = () => {
+    gapi.client
+      .init({
+        clientId: CLIENT_ID,
+        clientSecret: CLIENT_SECRET,
+        scope: SCOPES,
+        discoveryDocs: [
+          "https://sheets.googleapis.com/$discovery/rest?version=v4",
+        ],
+      })
+      .then(() => {
+        const authInstance = gapi.auth2.getAuthInstance();
+        const isUserSignedIn = authInstance.isSignedIn.get();
 
-          if (isUserSignedIn) {
+        if (isUserSignedIn) {
+          loadSheetData();
+        } else {
+          authInstance.signIn().then(() => {
+            setIsSignedIn(true);
             loadSheetData();
-          } else {
-            authInstance.signIn().then(() => {
-              setIsSignedIn(true);
-              loadSheetData();
-            });
-          }
-        });
-    };
+          });
+        }
+      });
+  };
 
+  useEffect(() => {
     gapi.load("client:auth2", initClient);
   }, []);
 

@@ -40,8 +40,6 @@ const initialState = {
 const savedState = getJSONCookie("settings");
 const finalInitialState = savedState ? { ...initialState, ...savedState } : initialState;
 
-console.log("SettingsSlice initialState", finalInitialState);
-
 export const SettingsSlice = createSlice({
   name: "settings",
   initialState: finalInitialState,
