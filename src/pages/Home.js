@@ -11,6 +11,7 @@ import MultiStepSidebar from "../components/MultiStepSidebar";
 import styles from "./Home.module.css";
 
 const CLIENT_ID = process.env.REACT_APP_CLIENT_ID;
+const CLIENT_SECRET = process.env.REACT_APP_CLIENT_SECRET;
 const SCOPES = "https://www.googleapis.com/auth/spreadsheets.readonly";
 const SHEET_ID = process.env.REACT_APP_SHEET_ID;
 
@@ -34,6 +35,7 @@ const Home = () => {
       gapi.client
         .init({
           clientId: CLIENT_ID,
+          clientSecret: CLIENT_SECRET,
           scope: SCOPES,
           discoveryDocs: [
             "https://sheets.googleapis.com/$discovery/rest?version=v4",
