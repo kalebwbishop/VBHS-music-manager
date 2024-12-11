@@ -90,7 +90,6 @@ const Home = () => {
         );
       })
       .then((allData) => {
-        console.log("All data:", allData);
         setAllData(allData);
       })
       .catch((error) => {

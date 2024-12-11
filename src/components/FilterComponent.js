@@ -102,6 +102,14 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
     }
   }, [selectedSheetIdxs]);
 
+  const handleSelectAllSheets = () => {
+    setSelectedSheetIdxs(Array.from({ length: allData.length }, (_, i) => i));
+  };
+
+  const handleDeselectAllSheets = () => {
+    setSelectedSheetIdxs([]);
+  };
+
   return (
     <div>
       <h3>Filter</h3>
@@ -110,6 +118,7 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
       <p>Select Sheets:</p>
       <select
         multiple
+        value={Array.from(selectedSheetIdxs.map((idx) => sheetNames[idx]))}
         onChange={(e) => {
           const selectedValues = Array.from(e.target.selectedOptions).map(
             (option) => sheetNames.indexOf(option.value)
@@ -124,6 +133,12 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
           </option>
         ))}
       </select>
+      <br />
+      {selectedSheetIdxs.length === 0 ? (
+        <button onClick={handleSelectAllSheets}>Select All</button>
+      ) : (
+        <button onClick={handleDeselectAllSheets}>Deselect All</button>
+      )}
 
       <br />
       <br />
@@ -184,12 +199,12 @@ function HeaderSelection({ headers, selectedHeader, handleOnChange }) {
   const settings = useSelector((state) => state.settings.value);
   let activeHeaders = headers;
 
-  if (settings?.filterColumns) {
-    activeHeaders = headers.filter((header) => {
-      const headerSettings = settings?.filterColumns[header];
-      return headerSettings?.active || headerSettings === undefined;
-    });
-  }
+  // if (settings?.filterColumns) {
+  //   activeHeaders = headers.filter((header) => {
+  //     const headerSettings = settings?.filterColumns[header];
+  //     return headerSettings?.active || headerSettings === undefined;
+  //   });
+  // }
 
   return (
     <select

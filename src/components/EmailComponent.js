@@ -1,46 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import PropTypes from "prop-types";
 
 function EmailComponent({ data }) {
-  const [selectedColumns, setSelectedColumns] = useState([]);
-
-  useEffect(() => {
-    // Retrieve saved selected columns from cookies on load
-    const savedColumns = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("selectedEmailColumns="))
-      ?.split("=")[1];
-
-    if (savedColumns) {
-      setSelectedColumns(JSON.parse(decodeURIComponent(savedColumns)));
-    }
-  }, []);
-
-  const handleCheckboxChange = (index) => {
-    setSelectedColumns((prev) => {
-      const newSelectedColumns = prev.includes(index)
-        ? prev.filter((col) => col !== index)
-        : [...prev, index];
-
-      document.cookie = `selectedEmailColumns=${encodeURIComponent(
-        JSON.stringify(newSelectedColumns)
-      )}; path=/; max-age=31536000`;
-
-      return newSelectedColumns;
-    });
-  };
+  const [sendToStudents, setSendToStudents] = useState(true);
+  const [sendToParents, setSendToParents] = useState(true);
 
   const handleButtonClick = (method) => {
-    const email = data.slice(1).map((row) => {
-      return selectedColumns.map((colIndex) => row[colIndex]).filter(Boolean);
+    let emailColumns = [];
+
+    if (sendToStudents) {
+      emailColumns.push("Student Email");
+    }
+
+    if (sendToParents) {
+      emailColumns.push("Parent 1 email");
+      emailColumns.push("Parent 2 email");
+    }
+
+    const emails = data.slice(1).map((row) => {
+      return emailColumns.map((column) => {
+        const columnIdx = data[0].indexOf(column);
+        return row[columnIdx];
+      });
     });
 
     if (method === "clipboard") {
-      const emailString = email.flat().join("; ");
+      const emailString = emails.flat().join("; ");
       navigator.clipboard.writeText(emailString);
     } else if (method === "app") {
-      const emailString = email.flat().join(", ");
-      const subject = "VBHS Music Manager";
-      const body = "Hello!";
+      const emailString = emails.flat().join(", ");
+      const subject = "";
+      const body = "";
       const mailto = `mailto:?bcc=${emailString}&subject=${encodeURIComponent(
         subject
       )}&body=${encodeURIComponent(body)}`;
@@ -52,25 +42,44 @@ function EmailComponent({ data }) {
   return (
     <div>
       <h3>Send Email</h3>
-      <p>Please select the columns containing the email addresses you want to use:</p>
-      {data[0].map((header, index) => (
-        <div key={index}>
-          <label>
-            <input
-              type="checkbox"
-              checked={selectedColumns.includes(index)}
-              onChange={() => handleCheckboxChange(index)}
-            />
-            {header}
-          </label>
-        </div>
-      ))}
-      <button style={{ marginTop: 10 }} onClick={() => handleButtonClick("app")}>
+      <p>Select who to email:</p>
+      <label>
+        <input
+          type="checkbox"
+          value={sendToStudents}
+          onChange={(e) => {
+            setSendToStudents(e.target.checked);
+          }}
+        />{" "}
+        Students
+      </label>
+      <br />
+      <label>
+        <input
+          type="checkbox"
+          value={sendToParents}
+          onChange={(e) => {
+            setSendToParents(e.target.checked);
+          }}
+        />{" "}
+        Parents
+      </label>
+      <br />
+      <button
+        style={{ marginTop: 10 }}
+        onClick={() => handleButtonClick("app")}
+      >
         Send Via Default Email Provider
       </button>
-      <button onClick={() => handleButtonClick("clipboard")}>Copy Emails to Clipboard</button>
+      <button onClick={() => handleButtonClick("clipboard")}>
+        Copy Emails to Clipboard
+      </button>
     </div>
   );
 }
+
+EmailComponent.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.array).isRequired,
+};
 
 export default EmailComponent;
