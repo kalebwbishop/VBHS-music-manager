@@ -5,7 +5,7 @@
 }
 
 .header {
-  background-color: #F78429;
+  background-color: #f78429;
   padding: 10px;
   text-align: left;
   position: sticky;
@@ -22,8 +22,8 @@
   overflow: auto;
   max-height: calc(100vh - 200px);
   max-width: 100%;
+  border-bottom: #333333 solid 2px;
 }
-
 
 .cell,
 .header {
@@ -87,4 +87,39 @@
 
 .sidebarContent {
   margin-top: 40px;
+}
+
+.sheetButton {
+  background-color: rgba(51, 51, 51, 0.05);
+  border-radius: 0 0 4px 4px;
+  border-width: 1px;
+  color: #333333;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  list-style: none;
+  margin-right: 10px;
+  padding: 5px 12px;
+  text-align: center;
+  transition: all 200ms;
+  vertical-align: baseline;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.sheetButton:last-child {
+  margin-right: 0;
+}
+
+.sheetButton:hover {
+  background-color: rgba(51, 51, 51, 0.1);
+}
+
+.sheetButton.active {
+  background-color: #f78429;
+  color: white;
 }

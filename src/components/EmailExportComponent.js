@@ -37,11 +37,11 @@ function EmailExportComponent({ allData, data, setDisplayData, sheetNames }) {
     }, [filteredData]);
 
     const sidebarContentList = [
-        <FilterComponent allData={allData} setFilteredData={setFilteredData} sheetNames={sheetNames} />,
-        <EmailorExportComponent handleNextClick={handleNextClick}/>,
-        <EmailComponent data={filteredData} />,
-        <SortComponent data={filteredData} setSortedData={setDisplayData} />,
-        <ExportComponent data={filteredData} />,
+        <FilterComponent key="filter" allData={allData} setFilteredData={setFilteredData} sheetNames={sheetNames} />,
+        <EmailorExportComponent key="emailOrExport" handleNextClick={handleNextClick}/>,
+        <EmailComponent key="email" data={filteredData} />,
+        <SortComponent key="sort" data={filteredData} setSortedData={setDisplayData} />,
+        <ExportComponent key="export" data={filteredData} />,
     ];
 
     return (
@@ -94,6 +94,13 @@ function EmailExportComponent({ allData, data, setDisplayData, sheetNames }) {
     );
 }
 
+EmailExportComponent.propTypes = {
+    allData: PropTypes.array.isRequired,
+    data: PropTypes.array.isRequired,
+    setDisplayData: PropTypes.func.isRequired,
+    sheetNames: PropTypes.array.isRequired,
+};
+
 const EmailorExportComponent = ({handleNextClick}) => {
     return (
         <>
@@ -104,14 +111,7 @@ const EmailorExportComponent = ({handleNextClick}) => {
 };
 
 EmailorExportComponent.propTypes = {
-    setCurrentStep: PropTypes.func.isRequired,
-};
-
-EmailExportComponent.propTypes = {
-    allData: PropTypes.array.isRequired,
-    data: PropTypes.array.isRequired,
-    setDisplayData: PropTypes.func.isRequired,
-    sheetNames: PropTypes.array.isRequired,
+    handleNextClick: PropTypes.func.isRequired,
 };
 
 export default EmailExportComponent;

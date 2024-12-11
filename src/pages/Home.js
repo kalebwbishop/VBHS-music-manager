@@ -9,6 +9,7 @@ import EmailExportComponent from "../components/EmailExportComponent";
 import MultiStepSidebar from "../components/MultiStepSidebar";
 
 import styles from "./Home.module.css";
+import combineSheets from "../utils/combineSheets";
 
 const CLIENT_ID = process.env.REACT_APP_CLIENT_ID;
 const CLIENT_SECRET = process.env.REACT_APP_CLIENT_SECRET;
@@ -25,7 +26,7 @@ const Home = () => {
   const [sidebarTitle, setSidebarTitle] = useState("");
   const [sidebarContentIndex, setSidebarContentIndex] = useState(0);
   const [sheetNames, setSheetNames] = useState([]);
-  const [selectedSheetIdx, setSelectedSheetIdx] = useState(0);
+  const [selectedSheetIdx, setSelectedSheetIdx] = useState(-1);
 
   const headerRef = useRef(null);
   const sheetButtonsRef = useRef(null);
@@ -62,8 +63,13 @@ const Home = () => {
 
   useEffect(() => {
     if (allData) {
-      setData(allData[selectedSheetIdx]);
-      setDisplayData(allData[selectedSheetIdx]);
+      if (selectedSheetIdx === -1) {
+        setData(combineSheets(allData));
+        setDisplayData(combineSheets(allData));
+      } else if (selectedSheetIdx !== -2) {
+        setData(allData[selectedSheetIdx]);
+        setDisplayData(allData[selectedSheetIdx]);
+      }
     }
   }, [selectedSheetIdx, allData]);
 
@@ -81,7 +87,6 @@ const Home = () => {
       .then((response) => {
         const sheets = response.result.sheets;
         const sheetNames = sheets.map((sheet) => sheet.properties.title);
-        console.log("All sheet names:", sheetNames);
 
         setSheetNames(sheetNames);
 
@@ -127,18 +132,19 @@ const Home = () => {
         showSidebar ? styles.containerSidebarOpen : ""
       }`}
     >
-      {isSignedIn && data ? (
+      {isSignedIn && data && displayData ? (
         <div>
           <div ref={headerRef} className={styles.headerContainer}>
             <h2 className={styles.headerTitle}>VBHS Music Manager</h2>
             <div className={styles.buttonGroup}>
               <StudentSearch
-                allData={allData}
+                data={data}
                 setDisplayData={setDisplayData}
                 sidebarContentIndex={sidebarContentIndex}
               />
               <button
                 onClick={() => {
+                  setSelectedSheetIdx(-2);
                   handleButtonClick(
                     <EmailExportComponent
                       allData={allData}
@@ -155,7 +161,7 @@ const Home = () => {
               </button>
               <button
                 onClick={() => {
-                  handleButtonClick(<SettingsComponent data={data} />);
+                  handleButtonClick(<SettingsComponent data={allData} />);
                   setSidebarTitle("Settings");
                   setSidebarContentIndex(2);
                 }}
@@ -175,6 +181,8 @@ const Home = () => {
               }px - ${sheetButtonsRef?.current?.offsetHeight || 0}px)`,
             }}
           >
+            {displayData.length === 0 ||
+              (displayData[0].length === 0 && <p>No data to display</p>)}
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -203,9 +211,10 @@ const Home = () => {
           </div>
 
           {/* Footer */}
-          {!showSidebar && (
+          {sidebarContentIndex !== 1 && (
             <SheetButtons
               sheetNames={sheetNames}
+              selectedSheetIdx={selectedSheetIdx}
               setSelectedSheetIdx={setSelectedSheetIdx}
               sheetButtonsRef={sheetButtonsRef}
             />
@@ -226,12 +235,31 @@ const Home = () => {
   );
 };
 
-const SheetButtons = ({ sheetNames, setSelectedSheetIdx, sheetButtonsRef }) => {
+const SheetButtons = ({
+  sheetNames,
+  selectedSheetIdx,
+  setSelectedSheetIdx,
+  sheetButtonsRef,
+}) => {
   return (
     <div ref={sheetButtonsRef}>
+      <button
+        key={"all-sheets-button"}
+        className={`${styles.sheetButton} ${
+          selectedSheetIdx === -1 ? styles.active : ""
+        }`}
+        onClick={() => {
+          setSelectedSheetIdx(-1);
+        }}
+      >
+        All Sheets
+      </button>
       {sheetNames.map((sheetName, idx) => (
         <button
           key={sheetName}
+          className={`${styles.sheetButton} ${
+            selectedSheetIdx === idx ? styles.active : ""
+          }`}
           onClick={() => {
             setSelectedSheetIdx(idx);
           }}
@@ -245,6 +273,7 @@ const SheetButtons = ({ sheetNames, setSelectedSheetIdx, sheetButtonsRef }) => {
 
 SheetButtons.propTypes = {
   sheetNames: PropTypes.array.isRequired,
+  selectedSheetIdx: PropTypes.number.isRequired,
   setSelectedSheetIdx: PropTypes.func.isRequired,
   sheetButtonsRef: PropTypes.object.isRequired,
 };

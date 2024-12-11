@@ -2,105 +2,87 @@ import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import { getJSONCookie, setJSONCookie } from "../utils/cookieUtils";
-import { set } from "../features/settings/SettingsSlice";
 import combineSheets from "../utils/combineSheets";
 
 function FilterComponent({ allData, setFilteredData, sheetNames }) {
+  const [selectedSheetIdxs, setSelectedSheetIdxs] = useState(
+    Array.from({ length: allData.length }, (_, i) => i)
+  );
+  const [headers, setHeaders] = useState([]);
+  const [data, setData] = useState([]);
   const [filters, setFilters] = useState([]);
-  const [selectedSheetIdxs, setSelectedSheetIdxs] = useState([]);
-  const [data, setData] = useState(allData[0] || []);
-  const [headers, setHeaders] = useState(allData[0][0] || []);
 
   // Retrieve saved selected columns from cookies on load
   useEffect(() => {
+    const savedSelectedSheets = getJSONCookie("selectedFilterSheets") || [];
+    setSelectedSheetIdxs(savedSelectedSheets);
+
     const savedFilters = getJSONCookie("selectedFilters") || [];
     setFilters(savedFilters);
   }, []);
 
-  const addFilter = () => {
-    setFilters([...filters, { column: "", values: [] }]);
-  };
-
-  const handleFilterChange = (index, field, value) => {
-    const updatedFilters = filters.map((filter, i) => {
-      if (i !== index) {
+  const handleFilterChange = (filterIdx, field, value) => {
+    let updatedFilters = [...filters, {}].map((filter, idx) => {
+      if (idx !== filterIdx) {
         return filter;
       }
 
-      if (field === "column") {
+      if (field === "header") {
         if (value === "") {
-          return { column: "", values: [""] };
+          return undefined;
         }
-
-        return { ...filter, [field]: value };
+        return { header: value };
       }
-
       if (field === "values") {
-        const valuesArray = Array.from(value).map((option) => option.value);
-        return { ...filter, values: valuesArray };
+        return {
+          ...filter,
+          values: Array.from(value).map((option) => option.value),
+        };
       }
     });
 
-    setJSONCookie("selectedFilters", updatedFilters);
+    updatedFilters = updatedFilters.filter(
+      (filter) => filter !== undefined && filter.header !== undefined
+    );
+
+    if (
+      updatedFilters.length > 0 &&
+      Object.keys(updatedFilters[updatedFilters.length - 1]).length === 0
+    ) {
+      updatedFilters = updatedFilters.slice(0, -1);
+    }
+
     setFilters(updatedFilters);
+    setJSONCookie("selectedFilters", updatedFilters);
   };
 
   const deleteFilter = (index) => {
     const updatedFilters = filters.filter((_, i) => i !== index);
-
-    setJSONCookie("selectedFilters", updatedFilters);
     setFilters(updatedFilters);
   };
 
   const applyFilters = (filters) => {
-    // Separate the header row and the data rows
-    const headerRow = data[0];
-    const dataRows = data.slice(1);
+    let filteredData = data;
 
-    const filtersToApply = filters.filter(
-      (filter) => filter.column !== "" && filter.values.length > 0
-    );
+    filters.forEach((filter) => {
+      if (!filter.values) return;
+      if (filter.values.length === 0) return;
+      if (!filter.header) return;
+      if (filter.header === "") return;
+      if (headers.indexOf(filter.header) === -1) return;
 
-    // Apply filters only to the data rows
-    const filteredDataRows = dataRows.filter((row) => {
-      return filtersToApply.every((filter) => {
-        const columnIndex = filter.column;
-
-        if (columnIndex === "") {
-          return true;
-        }
-
-        if (filter.values.length === 0) {
-          return true;
-        }
-
-        const cellValue = row[columnIndex];
-
-        // Check if the cell matches one of the values in the filter
-        if (filter.values && filter.values.length > 0) {
-          return filter.values.includes(cellValue);
-        }
-        return true;
-      });
+      const filterHeaderIdx = headers.indexOf(filter.header);
+      filteredData = filteredData.filter((row) =>
+        filter.values.includes(row[filterHeaderIdx])
+      );
     });
 
-    // Update the filtered data state
-    setFilteredData([headerRow, ...filteredDataRows]);
+    setFilteredData([headers, ...filteredData]);
   };
 
   useEffect(() => {
     applyFilters(filters);
   }, [data, filters]);
-
-  useEffect(() => {
-    if (selectedSheetIdxs.length > 0) {
-      const selectedSheets = selectedSheetIdxs.map((idx) => allData[idx]);
-      const alignedData = combineSheets(selectedSheets);
-
-      setHeaders(alignedData[0]);
-      setData(alignedData);
-    }
-  }, [selectedSheetIdxs]);
 
   const handleSelectAllSheets = () => {
     setSelectedSheetIdxs(Array.from({ length: allData.length }, (_, i) => i));
@@ -109,6 +91,16 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
   const handleDeselectAllSheets = () => {
     setSelectedSheetIdxs([]);
   };
+
+  useEffect(() => {
+    const selectedSheets = selectedSheetIdxs.map((idx) => allData[idx]);
+    const combinedData = combineSheets(selectedSheets);
+
+    setHeaders(combinedData[0]);
+    setData(combinedData.slice(1));
+
+    setJSONCookie("selectedFilterSheets", selectedSheetIdxs);
+  }, [selectedSheetIdxs]);
 
   return (
     <div>
@@ -124,7 +116,6 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
             (option) => sheetNames.indexOf(option.value)
           );
           setSelectedSheetIdxs(selectedValues);
-          console.log(selectedValues);
         }}
       >
         {sheetNames.map((sheetName) => (
@@ -145,9 +136,7 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
 
       <p>Filter by:</p>
 
-      <button onClick={() => addFilter()}>Add Filter</button>
-
-      {filters?.map((filter, index) => (
+      {[...filters, {}].map((filter, index) => (
         <div
           key={filter.column + "-" + index}
           style={{
@@ -156,33 +145,54 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
             border: "1px solid #ccc",
           }}
         >
-          {/* Dropdown for selecting the column header */}
-          <HeaderSelection
-            headers={headers}
-            selectedHeader={filter.column}
-            handleOnChange={(selectedColumnIndex) => {
-              handleFilterChange(index, "column", selectedColumnIndex);
-              console.log(selectedColumnIndex);
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
             }}
-          />
-
-          {/* Dropdown for selecting the filter value */}
-          <MultiSelectOptions
-            data={data}
-            headerIndex={filter.column}
-            selectedValues={filter.values} // Pass the current values here
-            handleOnChange={(e) =>
-              handleFilterChange(index, "values", e.target.selectedOptions)
-            }
-          />
-
-          {/* Delete filter button */}
-          <button
-            onClick={() => deleteFilter(index)}
-            style={{ marginLeft: "5px", color: "red" }}
           >
-            Delete
-          </button>
+            {/* Dropdown for selecting the column header */}
+            <HeaderSelection
+              headers={headers}
+              selectedHeader={filter.header}
+              handleOnChange={(selectedHeaderIdx) => {
+                handleFilterChange(index, "header", headers[selectedHeaderIdx]);
+              }}
+            />
+
+            {index !== filters.length && (
+              <>
+                {/* Delete filter button */}
+                <button
+                  onClick={() => deleteFilter(index)}
+                  style={{ marginLeft: "5px", color: "red" }}
+                >
+                  Delete
+                </button>
+
+                <p
+                  style={{
+                    marginLeft: "auto",
+                  }}
+                >
+                  {`${filter?.values?.length || 0} Selected`}
+                </p>
+              </>
+            )}
+          </div>
+
+          {index !== filters.length && (
+            // Dropdown for selecting the filter values
+            <MultiSelectOptions
+              headers={headers}
+              data={data}
+              filterHeader={filter.header}
+              selectedValues={filter.values}
+              handleOnChange={(e) =>
+                handleFilterChange(index, "values", e.target.selectedOptions)
+              }
+            />
+          )}
         </div>
       ))}
     </div>
@@ -190,7 +200,7 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
 }
 
 FilterComponent.propTypes = {
-  data: PropTypes.array.isRequired,
+  allData: PropTypes.array.isRequired,
   setFilteredData: PropTypes.func.isRequired,
   sheetNames: PropTypes.array.isRequired,
 };
@@ -199,29 +209,35 @@ function HeaderSelection({ headers, selectedHeader, handleOnChange }) {
   const settings = useSelector((state) => state.settings.value);
   let activeHeaders = headers;
 
-  // if (settings?.filterColumns) {
-  //   activeHeaders = headers.filter((header) => {
-  //     const headerSettings = settings?.filterColumns[header];
-  //     return headerSettings?.active || headerSettings === undefined;
-  //   });
-  // }
+  console.log("settings", settings);
+
+  if (settings?.filterColumns) {
+    activeHeaders = headers.filter((header) => {
+      const headerSettings = settings?.filterColumns[header];
+      return headerSettings?.active || headerSettings === undefined;
+    });
+  }
+
+  const selectValue = selectedHeader
+    ? activeHeaders.indexOf(selectedHeader)
+    : -2;
 
   return (
     <select
-      value={selectedHeader}
-      onChange={(event) => {
-        const selectedColumnIndex = headers.indexOf(
-          activeHeaders[event.target.value]
-        );
-        handleOnChange(selectedColumnIndex);
+      value={selectValue}
+      onChange={(e) => {
+        handleOnChange(headers.indexOf(activeHeaders[e.target.value]));
       }}
     >
-      <option value="">Select Column</option>
+      <option value={-2}>Select Column</option>
       {activeHeaders.map((header, idx) => (
         <option key={header} value={idx}>
           {header}
         </option>
       ))}
+      {selectValue === -1 && (
+        <option value={-1}>{`${selectedHeader} (No Values)`}</option>
+      )}
     </select>
   );
 }
@@ -233,37 +249,47 @@ HeaderSelection.propTypes = {
 };
 
 function MultiSelectOptions({
+  headers,
   data,
-  headerIndex,
+  filterHeader,
   selectedValues,
   handleOnChange,
 }) {
-  if (headerIndex !== "") {
-    const uniqueValues = [
-      ...new Set(data.slice(1).map((row) => row[headerIndex])),
-    ];
+  const filterHeaderIdx = headers.indexOf(filterHeader);
 
-    return (
-      <select
-        multiple={true}
-        onChange={handleOnChange}
-        value={selectedValues || []}
-      >
-        {uniqueValues.map((value, i) => (
-          <option key={value} value={value}>
-            {value}
-          </option>
-        ))}
-      </select>
-    );
+  let uniqueValues = data.map((row) => row[filterHeaderIdx]);
+  if (selectedValues) {
+    uniqueValues = [...uniqueValues, ...selectedValues];
+  }
+  uniqueValues = [...new Set(uniqueValues)];
+  uniqueValues = uniqueValues.filter(
+    (value) => value !== undefined && value !== "" && value !== null
+  );
+
+  if (uniqueValues.length === 0) {
+    return null;
   }
 
-  return null;
+  return (
+    <select
+      multiple={true}
+      onChange={handleOnChange}
+      value={selectedValues || []}
+      style={{ width: "100%" }}
+    >
+      {uniqueValues.map((value, i) => (
+        <option key={value} value={value}>
+          {value}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 MultiSelectOptions.propTypes = {
+  headers: PropTypes.array.isRequired,
   data: PropTypes.array.isRequired,
-  headerIndex: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+  filterHeader: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
     .isRequired,
   selectedValues: PropTypes.array,
   handleOnChange: PropTypes.func.isRequired,
