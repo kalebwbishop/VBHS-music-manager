@@ -10,6 +10,7 @@ import MultiStepSidebar from "../components/MultiStepSidebar";
 
 import styles from "./Home.module.css";
 import combineSheets from "../utils/combineSheets";
+import { set } from "../features/settings/SettingsSlice";
 
 const CLIENT_ID = process.env.REACT_APP_CLIENT_ID;
 const CLIENT_SECRET = process.env.REACT_APP_CLIENT_SECRET;
@@ -45,6 +46,8 @@ const Home = () => {
         const authInstance = gapi.auth2.getAuthInstance();
         const isUserSignedIn = authInstance.isSignedIn.get();
 
+        setIsSignedIn(isUserSignedIn);
+
         if (isUserSignedIn) {
           loadSheetData();
         } else {
@@ -71,12 +74,6 @@ const Home = () => {
       }
     }
   }, [selectedSheetIdx, allData]);
-
-  useEffect(() => {
-    if (isSignedIn && !allData) {
-      loadSheetData();
-    }
-  }, [isSignedIn]);
 
   const loadSheetData = () => {
     gapi.client.sheets.spreadsheets
@@ -131,7 +128,7 @@ const Home = () => {
         showSidebar ? styles.containerSidebarOpen : ""
       }`}
     >
-      {isSignedIn && data && displayData ? (
+      {isSignedIn ? (
         <div>
           <div ref={headerRef} className={styles.headerContainer}>
             <h2 className={styles.headerTitle}>VBHS Music Manager</h2>
