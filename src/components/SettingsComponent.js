@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import { useSelector, useDispatch } from "react-redux";
 import { set } from "../features/settings/SettingsSlice";
 
@@ -161,5 +162,9 @@ function SettingsComponent({ data }) {
     </div>
   );
 }
+
+SettingsComponent.propTypes = {
+  data: PropTypes.array.isRequired,
+};
 
 export default SettingsComponent;

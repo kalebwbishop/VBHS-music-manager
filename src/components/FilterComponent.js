@@ -2,12 +2,13 @@ import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import { getJSONCookie, setJSONCookie } from "../utils/cookieUtils";
+import { set } from "../features/settings/SettingsSlice";
 
-function FilterComponent({ data, setFilteredData }) {
+function FilterComponent({ allData, setFilteredData, sheetNames }) {
   const [filters, setFilters] = useState([]);
-
-  // Extract headers from the first row of data
-  const headers = data[0] || [];
+  const [selectedSheetIdxs, setSelectedSheetIdxs] = useState([]);
+  const [data, setData] = useState(allData[0] || []);
+  const [headers, setHeaders] = useState(allData[0][0] || []);
 
   // Retrieve saved selected columns from cookies on load
   useEffect(() => {
@@ -55,7 +56,9 @@ function FilterComponent({ data, setFilteredData }) {
     const headerRow = data[0];
     const dataRows = data.slice(1);
 
-    const filtersToApply = filters.filter((filter) => filter.column !== "" && filter.values.length > 0);
+    const filtersToApply = filters.filter(
+      (filter) => filter.column !== "" && filter.values.length > 0
+    );
 
     // Apply filters only to the data rows
     const filteredDataRows = dataRows.filter((row) => {
@@ -88,9 +91,80 @@ function FilterComponent({ data, setFilteredData }) {
     applyFilters(filters);
   }, [data, filters]);
 
+  useEffect(() => {
+    if (selectedSheetIdxs.length > 0) {
+      const selectedSheets = selectedSheetIdxs.map((idx) => allData[idx]);
+
+      // Step 1: Combine headers
+      const mergeHeaders = (currentHeaders, newHeaders) => {
+        const merged = [...currentHeaders];
+        newHeaders.forEach((header) => {
+          if (!merged.includes(header)) {
+            merged.push(header); // Append only new headers to the end
+          }
+        });
+        return merged;
+      };
+      
+      let allHeaders = [];
+      selectedSheets.forEach((list) => {
+        allHeaders = mergeHeaders(allHeaders, list[0]);
+      });
+      setHeaders(allHeaders);
+
+      // Step 2: Function to align data under the unified headers
+      const alignData = (data, headers) => {
+        const headerMap = Object.fromEntries(
+          data[0].map((header, index) => [header, index])
+        );
+        return data
+          .slice(1)
+          .map((row) =>
+            headers.map((header) =>
+              header in headerMap ? row[headerMap[header]] : null
+            )
+          );
+      };
+
+      // Step 3: Align data from both lists
+      const alignedData = selectedSheets.reduce(
+        (acc, list) => acc.concat(alignData(list, allHeaders)),
+        [allHeaders] // Start with the unified headers
+      );
+
+      console.log(alignedData);
+      setData(alignedData);
+    }
+  }, [selectedSheetIdxs]);
+
   return (
     <div>
       <h3>Filter</h3>
+
+      {/* Select Sheets to use */}
+      <p>Select Sheets:</p>
+      <select
+        multiple
+        onChange={(e) => {
+          const selectedValues = Array.from(e.target.selectedOptions).map(
+            (option) => sheetNames.indexOf(option.value)
+          );
+          setSelectedSheetIdxs(selectedValues);
+          console.log(selectedValues);
+        }}
+      >
+        {sheetNames.map((sheetName) => (
+          <option key={sheetName} value={sheetName}>
+            {sheetName}
+          </option>
+        ))}
+      </select>
+
+      <br />
+      <br />
+
+      <p>Filter by:</p>
+
       <button onClick={() => addFilter()}>Add Filter</button>
 
       {filters?.map((filter, index) => (
@@ -106,12 +180,10 @@ function FilterComponent({ data, setFilteredData }) {
           <HeaderSelection
             headers={headers}
             selectedHeader={filter.column}
-            handleOnChange={(selectedColumnIndex) =>
-            {
-              handleFilterChange(index, "column", selectedColumnIndex)
-              console.log(selectedColumnIndex)
-            }
-            }
+            handleOnChange={(selectedColumnIndex) => {
+              handleFilterChange(index, "column", selectedColumnIndex);
+              console.log(selectedColumnIndex);
+            }}
           />
 
           {/* Dropdown for selecting the filter value */}
@@ -140,6 +212,7 @@ function FilterComponent({ data, setFilteredData }) {
 FilterComponent.propTypes = {
   data: PropTypes.array.isRequired,
   setFilteredData: PropTypes.func.isRequired,
+  sheetNames: PropTypes.array.isRequired,
 };
 
 function HeaderSelection({ headers, selectedHeader, handleOnChange }) {
@@ -154,10 +227,15 @@ function HeaderSelection({ headers, selectedHeader, handleOnChange }) {
   }
 
   return (
-    <select value={selectedHeader} onChange={(event) => {
-      const selectedColumnIndex = headers.indexOf(activeHeaders[event.target.value]);
-      handleOnChange(selectedColumnIndex);
-    }}>
+    <select
+      value={selectedHeader}
+      onChange={(event) => {
+        const selectedColumnIndex = headers.indexOf(
+          activeHeaders[event.target.value]
+        );
+        handleOnChange(selectedColumnIndex);
+      }}
+    >
       <option value="">Select Column</option>
       {activeHeaders.map((header, idx) => (
         <option key={header} value={idx}>
@@ -174,7 +252,12 @@ HeaderSelection.propTypes = {
   handleOnChange: PropTypes.func.isRequired,
 };
 
-function MultiSelectOptions({ data, headerIndex, selectedValues, handleOnChange }) {
+function MultiSelectOptions({
+  data,
+  headerIndex,
+  selectedValues,
+  handleOnChange,
+}) {
   if (headerIndex !== "") {
     const uniqueValues = [
       ...new Set(data.slice(1).map((row) => row[headerIndex])),

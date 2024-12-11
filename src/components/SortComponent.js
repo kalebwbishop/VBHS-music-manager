@@ -13,7 +13,7 @@ function SortComponent({ data, setSortedData }) {
     
     const headers = data[0] || [];
 
-    const activeHeaders = headers.filter((header) => settings.sortColumns[header]?.active);
+    const activeHeaders = headers.filter((header) => settings?.sortColumns[header]?.active || true);
 
     const applySorting = () => {
         const headerRow = data[0];

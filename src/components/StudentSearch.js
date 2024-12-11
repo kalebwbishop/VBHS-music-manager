@@ -8,6 +8,10 @@ function StudentSearch({ data, setDisplayData, sidebarContentIndex }) {
   const [searchValue, setSearchValue] = useState("");
 
   const applyFilter = () => {
+    if (!data || data.length === 0) {
+      return;
+    }
+
     const headerRow = data[0];
     let dataRows = data.slice(1);
 
@@ -30,7 +34,9 @@ function StudentSearch({ data, setDisplayData, sidebarContentIndex }) {
         lastNameIndex = 1;
       }
 
-      console.log(firstNameIndex, lastNameIndex);
+      if (firstNameIndex >= dataRow.length || lastNameIndex >= dataRow.length) {
+        return false;
+      }
 
       // Check if the first, last, or full name contains the search value
       const firstName = dataRow[firstNameIndex]
