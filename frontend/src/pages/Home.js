@@ -57,6 +57,8 @@ const Home = () => {
   }, [selectedSheetIdx, allData]);
 
   const loadSheetData = () => {
+    console.log("Loading sheet data...");
+    console.log("Backend URL: ", window.env.REACT_APP_BACKEND_URL);
     fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet`)
       .then((response) => {
         if (!response.ok) {
