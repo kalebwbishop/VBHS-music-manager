@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const sheetRoutes = require("./routes/sheetRoutes");
+const auth = require("./routes/auth.routes");
 const { DB_Connect } = require("./database");
 
 const app = express();
@@ -31,6 +32,7 @@ DB_Connect()
 
 // Routes
 app.use("/api/sheet", sheetRoutes);
+app.use("/api/auth", auth)
 
 app.get("/", (req, res) => {
   res.json({ message: `Hello world, database is${db_is_connected ? "" : " not"} connected` });

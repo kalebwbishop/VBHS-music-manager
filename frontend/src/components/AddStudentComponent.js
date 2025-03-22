@@ -1,15 +1,20 @@
-import React, { useState } from "react";
+import React from "react";
 import PropTypes from "prop-types";
 import Papa from "papaparse";
 
-function AddStudentComponent({ data, selectedSheetIdx, closeSidebar, setRefresh }) {
-  const [students, setStudents] = useState([]);
+function AddStudentComponent({
+  data,
+  selectedSheetIdx,
+  closeSidebar,
+  setRefresh,
+  accessToken,
+}) {
 
   if (!data || data.length === 0) {
     return <p>No student data available.</p>;
   }
 
-  const headerRow = data[0].filter((cell) => cell.charAt(0) !== '_');
+  const headerRow = data[0].filter((cell) => cell.charAt(0) !== "_");
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -26,6 +31,7 @@ function AddStudentComponent({ data, selectedSheetIdx, closeSidebar, setRefresh 
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify(newStudent),
     })
@@ -54,7 +60,9 @@ function AddStudentComponent({ data, selectedSheetIdx, closeSidebar, setRefresh 
     Papa.parse(file, {
       complete: (result) => {
         const [csvHeaders, ...csvRows] = result.data;
-        const filteredHeaders = csvHeaders.filter((header) => header.charAt(0) !== '_');
+        const filteredHeaders = csvHeaders.filter(
+          (header) => header.charAt(0) !== "_"
+        );
 
         const parsedStudents = csvRows.map((row) => {
           const student = {};
@@ -64,15 +72,17 @@ function AddStudentComponent({ data, selectedSheetIdx, closeSidebar, setRefresh 
           return student;
         });
 
-        setStudents(parsedStudents);
-
-        fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet/${selectedSheetIdx}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(parsedStudents),
-        })
+        fetch(
+          `${window.env.REACT_APP_BACKEND_URL}/api/sheet/${selectedSheetIdx}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(parsedStudents),
+          }
+        )
           .then((response) => {
             if (response.status !== 201) {
               throw new Error("Network response was not ok");
@@ -95,22 +105,50 @@ function AddStudentComponent({ data, selectedSheetIdx, closeSidebar, setRefresh 
   return (
     <div style={{ paddingBottom: "50px" }}>
       <p>Here you can add new students.</p>
-      
+
       {/* CSV Upload Section */}
       <div style={{ marginBottom: "15px" }}>
         <label style={{ fontWeight: "bold" }}>Upload CSV:</label>
-        <input type="file" accept=".csv" onChange={handleCSVUpload} style={{ marginTop: "5px" }} />
+        <input
+          type="file"
+          accept=".csv"
+          onChange={handleCSVUpload}
+          style={{ marginTop: "5px" }}
+        />
       </div>
 
       {/* Manual Student Entry Form */}
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+      >
         {headerRow.map((header, index) => (
           <div key={index} style={{ display: "flex", flexDirection: "column" }}>
             <label>{header}</label>
-            <input type="text" name={header} style={{ width: "250px", padding: "5px", border: "1px solid #ccc", borderRadius: "5px" }} />
+            <input
+              type="text"
+              name={header}
+              style={{
+                width: "250px",
+                padding: "5px",
+                border: "1px solid #ccc",
+                borderRadius: "5px",
+              }}
+            />
           </div>
         ))}
-        <button type="submit" style={{ width: "250px", padding: "8px", backgroundColor: "#007BFF", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>
+        <button
+          type="submit"
+          style={{
+            width: "250px",
+            padding: "8px",
+            backgroundColor: "#007BFF",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
           Add Student
         </button>
       </form>
@@ -123,6 +161,7 @@ AddStudentComponent.propTypes = {
   selectedSheetIdx: PropTypes.number.isRequired,
   closeSidebar: PropTypes.func.isRequired,
   setRefresh: PropTypes.func.isRequired,
+  accessToken: PropTypes.string.isRequired,
 };
 
 export default AddStudentComponent;

@@ -1,0 +1,105 @@
+.auth-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+}
+
+.auth-button[type="submit"] {
+  width: 100%;
+  padding: 10px;
+  background-color: #4caf50;
+  color: white;
+  font-size: 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.auth-button[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+.auth-button[type="submit"]:active {
+  background-color: #388e3c;
+}
+
+.tab-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px; /* Adds spacing between buttons */
+  margin-bottom: 20px;
+}
+
+.auth-button {
+  flex: 1;
+  padding: 12px;
+  font-size: 16px; /* Ensures text fits */
+  white-space: nowrap; /* Prevents text from wrapping */
+  overflow: hidden; /* Ensures no overflow */
+  text-overflow: ellipsis; /* If text overflows, it will be truncated */
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.auth-button-active {
+  background-color: #4caf50;
+  color: white;
+}
+
+.auth-button:hover {
+  background-color: #f1f1f1;
+}
+
+.auth-button-active:hover {
+  background-color: #45a049;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-top: 5px;
+  box-sizing: border-box; /* Prevents width issues */
+}
+
+.error-message {
+  color: red;
+  font-size: 14px;
+  margin-bottom: 10px;
+  text-align: center;
+}

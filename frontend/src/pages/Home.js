@@ -6,12 +6,12 @@ import SettingsComponent from "../components/SettingsComponent";
 import EmailExportComponent from "../components/EmailExportComponent";
 import AddStudentComponent from "../components/AddStudentComponent";
 import ModifyStudentComponent from "../components/ModifyStudentComponent";
+import AuthComponent from "../components/AuthComponent";
 
 import MultiStepSidebar from "../components/MultiStepSidebar";
 
 import styles from "./Home.module.css";
 import combineSheets from "../utils/combineSheets";
-
 
 const Home = () => {
   const [allData, setAllData] = useState([]);
@@ -26,22 +26,22 @@ const Home = () => {
   const [selectedSheetIdx, setSelectedSheetIdx] = useState(-1);
   const [selectedRow, setSelectedRow] = useState(-1);
   const [refresh, setRefresh] = useState(false);
+  const [accessToken, setAccessToken] = useState("");
 
   const headerRef = useRef(null);
   const sheetButtonsRef = useRef(null);
 
   useEffect(() => {
-    // TODO: Replace with actual sign-in check
-    const checkSignIn = async () => {
-      // Simulate a sign-in check
-      const signedIn = true; // Replace with actual sign-in logic
-      setIsSignedIn(signedIn);
-      if (signedIn) {
+    const accessToken = localStorage.getItem("token");
 
-        loadSheetData();
-      }
+    if (accessToken) {
+      setAccessToken(accessToken);
+      setIsSignedIn(true);
+      loadSheetData(accessToken);
     }
-    checkSignIn();
+    else {
+      setIsSignedIn(false);
+    }
   }, [refresh]);
 
   useEffect(() => {
@@ -56,17 +56,24 @@ const Home = () => {
     }
   }, [selectedSheetIdx, allData]);
 
-  const loadSheetData = () => {
+  const loadSheetData = (accessToken) => {
     console.log("Loading sheet data...");
-    console.log("Backend URL: ", window.env.REACT_APP_BACKEND_URL);
-    fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet`)
+    fetch(
+      `${window.env.REACT_APP_BACKEND_URL}/api/sheet`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    )
       .then((response) => {
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }
         return response.json();
-      }
-      )
+      })
       .then((data) => {
         const sheetNames = Object.keys(data);
         const allData = sheetNames.map((sheetName) => {
@@ -75,7 +82,7 @@ const Home = () => {
             headers,
             ...data[sheetName].map((row) =>
               headers.map((header) => row[header])
-            )
+            ),
           ];
         });
 
@@ -98,14 +105,27 @@ const Home = () => {
     setShowSidebar(false);
     setSidebarContent("");
     setSidebarContentIndex(0);
-    setData(allData[selectedSheetIdx]);
-    setDisplayData(allData[selectedSheetIdx]);
+
+    if (allData) {
+      if (selectedSheetIdx === -1) {
+        setData(combineSheets(allData));
+        setDisplayData(combineSheets(allData));
+      } else if (selectedSheetIdx !== -2) {
+        setData(allData[selectedSheetIdx]);
+        setDisplayData(allData[selectedSheetIdx]);
+      }
+    }
   };
+
+  if (!isSignedIn) {
+    return <AuthComponent setRefresh={setRefresh}/>;
+  }
 
   return (
     <div
-      className={`${styles.container} ${showSidebar ? styles.containerSidebarOpen : ""
-        }`}
+      className={`${styles.container} ${
+        showSidebar ? styles.containerSidebarOpen : ""
+      }`}
     >
       {isSignedIn ? (
         <div>
@@ -147,10 +167,12 @@ const Home = () => {
           <div
             className={styles.tableContainer}
             style={{
-              maxHeight: `calc(95vh - ${headerRef?.current?.offsetHeight || 0
-                }px - ${sheetButtonsRef?.current?.offsetHeight || 0}px)`,
-              minHeight: `calc(95vh - ${headerRef?.current?.offsetHeight || 0
-                }px - ${sheetButtonsRef?.current?.offsetHeight || 0}px)`,
+              maxHeight: `calc(95vh - ${
+                headerRef?.current?.offsetHeight || 0
+              }px - ${sheetButtonsRef?.current?.offsetHeight || 0}px)`,
+              minHeight: `calc(95vh - ${
+                headerRef?.current?.offsetHeight || 0
+              }px - ${sheetButtonsRef?.current?.offsetHeight || 0}px)`,
             }}
           >
             {displayData.length === 0 ||
@@ -158,13 +180,17 @@ const Home = () => {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  {displayData[0]?.map((header, index) => (
-                    !header.startsWith('_') && (
-                      <th key={`${header}-${index}`} className={styles.header}>
-                        {header}
-                      </th>
-                    )
-                  ))}
+                  {displayData[0]?.map(
+                    (header, index) =>
+                      !header.startsWith("_") && (
+                        <th
+                          key={`${header}-${index}`}
+                          className={styles.header}
+                        >
+                          {header}
+                        </th>
+                      )
+                  )}
                 </tr>
               </thead>
 
@@ -172,21 +198,26 @@ const Home = () => {
                 {displayData.slice(1).map((row, rowIndex) => (
                   <tr
                     key={row.join("-")}
-                    className={selectedRow === rowIndex ? styles.selectedRow : styles.row}
+                    className={
+                      selectedRow === rowIndex ? styles.selectedRow : styles.row
+                    }
                     onClick={() => setSelectedRow(rowIndex)}
                   >
-                    {row.map((cell, cellIndex) => (
-                      // Skip the column if the corresponding header starts with an underscore
-                      !displayData[0][cellIndex].startsWith('_') && (
-                        <td key={`${row.join("-")}-${cellIndex}`} className={styles.cell}>
-                          {cell}
-                        </td>
-                      )
-                    ))}
+                    {row.map(
+                      (cell, cellIndex) =>
+                        // Skip the column if the corresponding header starts with an underscore
+                        !displayData[0][cellIndex].startsWith("_") && (
+                          <td
+                            key={`${row.join("-")}-${cellIndex}`}
+                            className={styles.cell}
+                          >
+                            {cell}
+                          </td>
+                        )
+                    )}
                   </tr>
                 ))}
               </tbody>
-
             </table>
           </div>
 
@@ -206,6 +237,7 @@ const Home = () => {
               setDisplayData={setDisplayData}
               setSelectedRow={setSelectedRow}
               setRefresh={setRefresh}
+              accessToken={accessToken}
             />
           )}
 
@@ -238,6 +270,7 @@ const SheetButtons = ({
   setDisplayData,
   setSelectedRow,
   setRefresh,
+  accessToken,
 }) => {
   return (
     <div ref={sheetButtonsRef} className={styles.sheetButtonsContainer}>
@@ -245,7 +278,9 @@ const SheetButtons = ({
       <div className={styles.sheetButtonGroup}>
         <button
           key={"all-sheets-button"}
-          className={`${styles.sheetButton} ${selectedSheetIdx === -1 ? styles.active : ""}`}
+          className={`${styles.sheetButton} ${
+            selectedSheetIdx === -1 ? styles.active : ""
+          }`}
           onClick={() => setSelectedSheetIdx(-1)}
         >
           All Sheets
@@ -253,7 +288,9 @@ const SheetButtons = ({
         {sheetNames.map((sheetName, idx) => (
           <button
             key={sheetName}
-            className={`${styles.sheetButton} ${selectedSheetIdx === idx ? styles.active : ""}`}
+            className={`${styles.sheetButton} ${
+              selectedSheetIdx === idx ? styles.active : ""
+            }`}
             onClick={() => setSelectedSheetIdx(idx)}
           >
             {sheetName}
@@ -264,61 +301,88 @@ const SheetButtons = ({
       {/* Right-aligned buttons */}
       <div className={styles.rightButtons}>
         {selectedSheetIdx !== -1 && (
-          <button key="add-sheet-button" className={styles.sheetButton} onClick={() => {
-            handleButtonClick(<AddStudentComponent
-              data={displayData}
-              selectedSheetIdx={selectedSheetIdx}
-              closeSidebar={closeSidebar} 
-              setRefresh={setRefresh}
-              />
-            );
-            setSidebarTitle("Add Student");
-            setSidebarContentIndex(4);
-          }}>
+          <button
+            key="add-sheet-button"
+            className={styles.sheetButton}
+            onClick={() => {
+              handleButtonClick(
+                <AddStudentComponent
+                  data={displayData}
+                  selectedSheetIdx={selectedSheetIdx}
+                  closeSidebar={closeSidebar}
+                  setRefresh={setRefresh}
+                />
+              );
+              setSidebarTitle("Add Student");
+              setSidebarContentIndex(4);
+            }}
+          >
             Add
           </button>
         )}
         {selectedSheetIdx !== -1 && selectedRow !== -1 && (
-          <button key="modify-sheet-button" className={styles.sheetButton} onClick={() => {
-            handleButtonClick(<ModifyStudentComponent
-              data={displayData}
-              selectedSheetIdx={selectedSheetIdx}
-              closeSidebar={closeSidebar}
-              selectedRow={selectedRow}
-              setRefresh={setRefresh}
-            />
-            );
-            setSidebarTitle("Modify Student");
-            setSidebarContentIndex(5);
-          }}>
+          <button
+            key="modify-sheet-button"
+            className={styles.sheetButton}
+            onClick={() => {
+              handleButtonClick(
+                <ModifyStudentComponent
+                  data={displayData}
+                  selectedSheetIdx={selectedSheetIdx}
+                  closeSidebar={closeSidebar}
+                  selectedRow={selectedRow}
+                  setRefresh={setRefresh}
+                />
+              );
+              setSidebarTitle("Modify Student");
+              setSidebarContentIndex(5);
+            }}
+          >
             Modify
           </button>
         )}
         {selectedSheetIdx !== -1 && selectedRow !== -1 && (
-          <button key="delete-sheet-button" className={styles.sheetButton} onClick={() => {
-            // Handle delete logic here
-            if (window.confirm("Are you sure you want to delete this student?")) {
-              fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet/${selectedSheetIdx}/${displayData[selectedRow + 1][0]}`, {
-                method: "DELETE"
-              })
-                .then((response) => {
-                  if (!response.ok) {
-                    throw new Error("Network response was not ok");
+          <button
+            key="delete-sheet-button"
+            className={styles.sheetButton}
+            onClick={() => {
+              // Handle delete logic here
+              if (
+                window.confirm("Are you sure you want to delete this student?")
+              ) {
+                fetch(
+                  `${
+                    window.env.REACT_APP_BACKEND_URL
+                  }/api/sheet/${selectedSheetIdx}/${
+                    displayData[selectedRow + 1][0]
+                  }`,
+                  {
+                    method: "DELETE",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
                   }
-                  return response.json();
-                })
-                .then((data) => {
-                  console.log("Student deleted successfully:", data);
-                  alert("Student deleted successfully!");
-                  closeSidebar();
-                  setSelectedRow(-1); // Reset selected row
-                  setRefresh(prev => !prev); // Trigger a refresh to update the data
-                })
-                .catch((error) => {
-                  console.error("Error deleting student:", error);
-                });
-            }
-          }}>
+                )
+                  .then((response) => {
+                    if (!response.ok) {
+                      throw new Error("Network response was not ok");
+                    }
+                    return response.json();
+                  })
+                  .then((data) => {
+                    console.log("Student deleted successfully:", data);
+                    alert("Student deleted successfully!");
+                    closeSidebar();
+                    setSelectedRow(-1); // Reset selected row
+                    setRefresh((prev) => !prev); // Trigger a refresh to update the data
+                  })
+                  .catch((error) => {
+                    console.error("Error deleting student:", error);
+                  });
+              }
+            }}
+          >
             Delete
           </button>
         )}
@@ -326,7 +390,6 @@ const SheetButtons = ({
     </div>
   );
 };
-
 
 SheetButtons.propTypes = {
   sheetNames: PropTypes.array.isRequired,
@@ -342,7 +405,7 @@ SheetButtons.propTypes = {
   setDisplayData: PropTypes.func.isRequired,
   setSelectedRow: PropTypes.func.isRequired,
   setRefresh: PropTypes.func.isRequired,
+  accessToken: PropTypes.string.isRequired,
 };
-
 
 export default Home;

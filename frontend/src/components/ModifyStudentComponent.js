@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-function ModifyStudentComponent({ data, selectedSheetIdx, closeSidebar, selectedRow, setRefresh }) {
+function ModifyStudentComponent({ data, selectedSheetIdx, closeSidebar, selectedRow, setRefresh, accessToken }) {
   if (!data || data.length === 0) {
     return <p>No student data available.</p>;
   }
@@ -37,6 +37,7 @@ function ModifyStudentComponent({ data, selectedSheetIdx, closeSidebar, selected
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify(updatedStudent),
         }
