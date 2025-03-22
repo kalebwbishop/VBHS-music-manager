@@ -2,6 +2,8 @@ function combineSheets(selectedSheets) {
   // Step 1: Combine headers
   const mergeHeaders = (currentHeaders, newHeaders) => {
     const merged = [...currentHeaders];
+    if (newHeaders.length === 0) return merged; // Return if newHeaders is empty
+
     newHeaders.forEach((header) => {
       if (!merged.includes(header)) {
         merged.push(header); // Append only new headers to the end

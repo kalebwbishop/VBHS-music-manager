@@ -40,6 +40,20 @@
   padding: 10px;
 }
 
+.row {
+  cursor: pointer; /* Makes rows clickable */
+  transition: background-color 0.2s ease-in-out;
+}
+
+.row:hover {
+  background-color: rgba(0, 0, 255, 0.1); /* Light blue on hover */
+}
+
+.selectedRow {
+  background-color: rgba(0, 0, 255, 0.2); /* Darker blue for selected row */
+}
+
+
 .buttonGroup {
   display: flex;
   gap: 10px;
@@ -54,16 +68,13 @@
   right: 0;
   top: 0;
   height: 100vh;
-  width: 300px;
-  /* Adjust width as needed */
-  max-width: 50%;
-  background-color: #f4f4f4;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+  width: 300px; /* Adjust width as needed */
+  background: white;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
   transform: translateX(100%);
-  transition: transform 0.3s ease;
-  z-index: 1000;
-  padding: 20px;
-  overflow-y: auto;
+  transition: transform 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar.show {
@@ -86,7 +97,10 @@
 }
 
 .sidebarContent {
-  margin-top: 40px;
+  flex-grow: 1; /* Ensures it takes available space */
+  overflow-y: auto; /* Enables scrolling */
+  padding: 10px;
+  max-height: calc(100vh - 50px); /* Adjust based on header height */
 }
 
 .sheetButton {
@@ -110,6 +124,26 @@
   -webkit-user-select: none;
   touch-action: manipulation;
 }
+
+.sheetButtonsContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Push left and right sections apart */
+  width: 100%;
+  gap: 8px;
+}
+
+.sheetButtonGroup {
+  display: flex;
+  gap: 8px; /* Spacing between sheet buttons */
+}
+
+.rightButtons {
+  display: flex;
+  gap: 8px;
+  margin-left: auto; /* Push the right buttons to the far right */
+}
+
 
 .sheetButton:last-child {
   margin-right: 0;

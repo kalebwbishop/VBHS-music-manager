@@ -9,6 +9,7 @@
     "@testing-library/user-event": "^13.5.0",
     "gapi-script": "^1.2.0",
     "google-auth-library": "^9.14.2",
+    "papaparse": "^5.5.2",
     "react": "^18.3.1",
     "react-data-grid": "^7.0.0-beta.47",
     "react-dom": "^18.3.1",
@@ -19,6 +20,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "dev": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
