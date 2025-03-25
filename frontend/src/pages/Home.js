@@ -6,6 +6,8 @@ import SettingsComponent from "../components/SettingsComponent";
 import EmailExportComponent from "../components/EmailExportComponent";
 import AddStudentComponent from "../components/AddStudentComponent";
 import ModifyStudentComponent from "../components/ModifyStudentComponent";
+import AddSheetComponent from "../components/AddSheetComponent";
+import EditSheetComponent from "../components/EditSheetComponent";
 import AuthComponent from "../components/AuthComponent";
 
 import MultiStepSidebar from "../components/MultiStepSidebar";
@@ -17,6 +19,7 @@ const Home = () => {
   const [allData, setAllData] = useState([]);
   const [data, setData] = useState([]);
   const [displayData, setDisplayData] = useState([]);
+  const [sheetIds, setSheetIds] = useState([]);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [sidebarContent, setSidebarContent] = useState("");
@@ -69,27 +72,40 @@ const Home = () => {
       }
     )
       .then((response) => {
+        if (response.status === 401) {
+          console.error("Unauthorized access. Please sign in again.");
+          setIsSignedIn(false);
+          return;
+        }
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }
+
         return response.json();
       })
       .then((data) => {
+        console.log("Sheet data loaded successfully:", data);
+
+
         const sheetNames = Object.keys(data);
         const allData = sheetNames.map((sheetName) => {
-          let headers = Object.keys(data[sheetName][0]);
+          let headers = ["_id", ...data[sheetName].columns]
+          console.log("Headers: ", headers);
           return [
             headers,
-            ...data[sheetName].map((row) =>
+            ...data[sheetName].rows.map((row) =>
               headers.map((header) => row[header])
             ),
           ];
         });
+        const sheetIds = sheetNames.map((sheetName) => data[sheetName]._id);
 
         setSheetNames(sheetNames);
         setAllData(allData);
+        setSheetIds(sheetIds);
         console.log("Sheet Names: ", sheetNames);
         console.log("All Data: ", allData);
+        console.log("Sheet IDs: ", sheetIds);
       })
       .catch((error) => {
         console.error("Error loading sheets metadata:", error);
@@ -118,14 +134,13 @@ const Home = () => {
   };
 
   if (!isSignedIn) {
-    return <AuthComponent setRefresh={setRefresh}/>;
+    return <AuthComponent setRefresh={setRefresh} />;
   }
 
   return (
     <div
-      className={`${styles.container} ${
-        showSidebar ? styles.containerSidebarOpen : ""
-      }`}
+      className={`${styles.container} ${showSidebar ? styles.containerSidebarOpen : ""
+        }`}
     >
       {isSignedIn ? (
         <div>
@@ -167,12 +182,10 @@ const Home = () => {
           <div
             className={styles.tableContainer}
             style={{
-              maxHeight: `calc(95vh - ${
-                headerRef?.current?.offsetHeight || 0
-              }px - ${sheetButtonsRef?.current?.offsetHeight || 0}px)`,
-              minHeight: `calc(95vh - ${
-                headerRef?.current?.offsetHeight || 0
-              }px - ${sheetButtonsRef?.current?.offsetHeight || 0}px)`,
+              maxHeight: `calc(95vh - ${headerRef?.current?.offsetHeight || 0
+                }px - ${sheetButtonsRef?.current?.offsetHeight || 0}px)`,
+              minHeight: `calc(95vh - ${headerRef?.current?.offsetHeight || 0
+                }px - ${sheetButtonsRef?.current?.offsetHeight || 0}px)`,
             }}
           >
             {displayData.length === 0 ||
@@ -238,6 +251,7 @@ const Home = () => {
               setSelectedRow={setSelectedRow}
               setRefresh={setRefresh}
               accessToken={accessToken}
+              sheetIds={sheetIds}
             />
           )}
 
@@ -271,6 +285,7 @@ const SheetButtons = ({
   setSelectedRow,
   setRefresh,
   accessToken,
+  sheetIds,
 }) => {
   return (
     <div ref={sheetButtonsRef} className={styles.sheetButtonsContainer}>
@@ -278,9 +293,8 @@ const SheetButtons = ({
       <div className={styles.sheetButtonGroup}>
         <button
           key={"all-sheets-button"}
-          className={`${styles.sheetButton} ${
-            selectedSheetIdx === -1 ? styles.active : ""
-          }`}
+          className={`${styles.sheetButton} ${selectedSheetIdx === -1 ? styles.active : ""
+            }`}
           onClick={() => setSelectedSheetIdx(-1)}
         >
           All Sheets
@@ -288,14 +302,49 @@ const SheetButtons = ({
         {sheetNames.map((sheetName, idx) => (
           <button
             key={sheetName}
-            className={`${styles.sheetButton} ${
-              selectedSheetIdx === idx ? styles.active : ""
-            }`}
-            onClick={() => setSelectedSheetIdx(idx)}
+            className={`${styles.sheetButton} ${selectedSheetIdx === idx ? styles.active : ""
+              }`}
+            onClick={() => {
+              if (selectedSheetIdx === idx) {
+                handleButtonClick(
+                  <EditSheetComponent
+                    closeSidebar={closeSidebar}
+                    setRefresh={setRefresh}
+                    accessToken={accessToken}
+                    sheetName={sheetName}
+                    sheetId={sheetIds[idx]}
+                    displayData={displayData}
+                  />
+
+                );
+                setSidebarTitle("Edit Sheet");
+                setSidebarContentIndex(2);
+
+              }
+
+              setSelectedSheetIdx(idx)
+            }}
           >
             {sheetName}
           </button>
         ))}
+        <button
+          key={"add-sheet-button"}
+          className={`${styles.sheetButton}`}
+          onClick={() => {
+            handleButtonClick(
+              <AddSheetComponent
+                closeSidebar={closeSidebar}
+                setRefresh={setRefresh}
+                accessToken={accessToken}
+              />
+            );
+            setSidebarTitle("Add Sheet");
+            setSidebarContentIndex(2);
+          }}
+        >
+          +
+        </button>
       </div>
 
       {/* Right-aligned buttons */}
@@ -311,6 +360,8 @@ const SheetButtons = ({
                   selectedSheetIdx={selectedSheetIdx}
                   closeSidebar={closeSidebar}
                   setRefresh={setRefresh}
+                  accessToken={accessToken}
+                  sheetIds={sheetIds}
                 />
               );
               setSidebarTitle("Add Student");
@@ -332,6 +383,8 @@ const SheetButtons = ({
                   closeSidebar={closeSidebar}
                   selectedRow={selectedRow}
                   setRefresh={setRefresh}
+                  accessToken={accessToken}
+                  sheetId={sheetIds[selectedSheetIdx]}
                 />
               );
               setSidebarTitle("Modify Student");
@@ -351,16 +404,14 @@ const SheetButtons = ({
                 window.confirm("Are you sure you want to delete this student?")
               ) {
                 fetch(
-                  `${
-                    window.env.REACT_APP_BACKEND_URL
-                  }/api/sheet/${selectedSheetIdx}/${
-                    displayData[selectedRow + 1][0]
+                  `${window.env.REACT_APP_BACKEND_URL
+                  }/api/sheet/${sheetIds[selectedSheetIdx]}/${displayData[selectedRow + 1][0]
                   }`,
                   {
                     method: "DELETE",
                     headers: {
                       "Content-Type": "application/json",
-                      Authorization: `Bearer ${localStorage.getItem("token")}`,
+                      Authorization: `Bearer ${accessToken}`,
                     },
                   }
                 )
@@ -406,6 +457,7 @@ SheetButtons.propTypes = {
   setSelectedRow: PropTypes.func.isRequired,
   setRefresh: PropTypes.func.isRequired,
   accessToken: PropTypes.string.isRequired,
+  sheetIds: PropTypes.array.isRequired,
 };
 
 export default Home;

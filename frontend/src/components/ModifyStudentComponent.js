@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-function ModifyStudentComponent({ data, selectedSheetIdx, closeSidebar, selectedRow, setRefresh, accessToken }) {
+function ModifyStudentComponent({ data, selectedSheetIdx, closeSidebar, selectedRow, setRefresh, accessToken, sheetId }) {
   if (!data || data.length === 0) {
     return <p>No student data available.</p>;
   }
@@ -32,7 +32,7 @@ function ModifyStudentComponent({ data, selectedSheetIdx, closeSidebar, selected
 
     try {
       const response = await fetch(
-        `${window.env.REACT_APP_BACKEND_URL}/api/sheet/${selectedSheetIdx}/${studentData[0]}`, // Assuming the first column is the ID
+        `${window.env.REACT_APP_BACKEND_URL}/api/sheet/${sheetId}/${studentData[0]}`, // Assuming the first column is the ID
         {
           method: "PATCH",
           headers: {
@@ -87,6 +87,8 @@ ModifyStudentComponent.propTypes = {
   closeSidebar: PropTypes.func.isRequired,
   selectedRow: PropTypes.number.isRequired,
   setRefresh: PropTypes.func.isRequired,
+  accessToken: PropTypes.string.isRequired,
+  sheetId: PropTypes.string.isRequired,
 };
 
 export default ModifyStudentComponent;

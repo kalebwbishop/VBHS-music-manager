@@ -82,7 +82,7 @@ function ExportComponent({ data }) {
       <button onClick={handleSelectAll}>
         {selectedColumns.length === data[0].length ? "Deselect All" : "Select All"}
       </button>
-      {data[0].map((header, index) => (
+      {data[0].filter((cell) => cell.charAt(0) != '_').map((header, index) => (
         <div key={index}>
           <label>
             <input

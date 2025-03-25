@@ -8,6 +8,7 @@ function AddStudentComponent({
   closeSidebar,
   setRefresh,
   accessToken,
+  sheetIds,
 }) {
 
   if (!data || data.length === 0) {
@@ -26,8 +27,11 @@ function AddStudentComponent({
     });
 
     console.log("New Student Data: ", newStudent);
+    console.log("Selected Sheet ID: ", sheetIds);
+    console.log("Selected Sheet Index: ", selectedSheetIdx);
+    console.log("Access Token: ", accessToken);
 
-    fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet/${selectedSheetIdx}`, {
+    fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet/${sheetIds[selectedSheetIdx]}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -73,7 +77,7 @@ function AddStudentComponent({
         });
 
         fetch(
-          `${window.env.REACT_APP_BACKEND_URL}/api/sheet/${selectedSheetIdx}`,
+          `${window.env.REACT_APP_BACKEND_URL}/api/sheet/${sheetIds[selectedSheetIdx]}`,
           {
             method: "POST",
             headers: {
@@ -92,7 +96,9 @@ function AddStudentComponent({
           .then((data) => {
             console.log("Bulk upload success:", data);
             alert("Students added successfully!");
+            setRefresh((prev) => !prev); // Trigger a refresh to update the data
             closeSidebar();
+
           })
           .catch((error) => {
             console.error("Error:", error);
@@ -162,6 +168,7 @@ AddStudentComponent.propTypes = {
   closeSidebar: PropTypes.func.isRequired,
   setRefresh: PropTypes.func.isRequired,
   accessToken: PropTypes.string.isRequired,
+  sheetIds: PropTypes.array.isRequired,
 };
 
 export default AddStudentComponent;

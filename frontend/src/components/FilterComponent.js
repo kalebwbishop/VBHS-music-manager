@@ -94,7 +94,7 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
 
   useEffect(() => {
     const selectedSheets = selectedSheetIdxs.map((idx) => allData[idx]);
-    const combinedData = combineSheets(selectedSheets);
+    const combinedData = combineSheets(selectedSheets, true);
 
     setHeaders(combinedData[0]);
     setData(combinedData.slice(1));

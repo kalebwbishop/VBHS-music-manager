@@ -1,4 +1,4 @@
-function combineSheets(selectedSheets) {
+function combineSheets(selectedSheets, filter = false) {
   // Step 1: Combine headers
   const mergeHeaders = (currentHeaders, newHeaders) => {
     const merged = [...currentHeaders];
@@ -9,6 +9,9 @@ function combineSheets(selectedSheets) {
         merged.push(header); // Append only new headers to the end
       }
     });
+    if (filter) {
+      return merged.filter((header) => header.charAt(0) !== "_"); // Filter out empty headers
+    }
     return merged;
   };
   

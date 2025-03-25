@@ -1,14 +1,16 @@
 const express = require("express");
-const { getSheetsRows } = require("../controllers/sheetsController");
-const { getSheet0Rows, addSheet0Row, updateSheet0Row, deleteSheet0Row } = require("../controllers/sheet0Controller");
+const { getSheetsRows, addSheet, updateSheet, deleteSheet, addSheetRow, updateSheetRow, deleteSheetRow  } = require("../controllers/sheetsController");
 const verifyToken = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
 router.get("/", verifyToken, getSheetsRows);
-router.get("/0", verifyToken, getSheet0Rows);
-router.post("/0", verifyToken, addSheet0Row);
-router.patch("/0/:id", verifyToken, updateSheet0Row);
-router.delete("/0/:id", verifyToken, deleteSheet0Row);
+router.post("/", verifyToken, addSheet);
+router.patch("/:sheetId", verifyToken, updateSheet);
+router.delete("/:sheetId", verifyToken, deleteSheet);
+
+router.post("/:sheetId", verifyToken, addSheetRow);
+router.patch("/:sheetId/:rowId", verifyToken, updateSheetRow);
+router.delete("/:sheetId/:rowId", verifyToken, deleteSheetRow);
 
 module.exports = router;

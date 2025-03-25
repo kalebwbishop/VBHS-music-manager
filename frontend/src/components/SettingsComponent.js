@@ -7,7 +7,7 @@ import { getJSONCookie, setJSONCookie } from "../utils/cookieUtils";
 import combineSheets from "../utils/combineSheets";
 
 function SettingsComponent({ data }) {
-  const headerRow = combineSheets(data)[0];
+  const headerRow = combineSheets(data)[0].filter((cell) => cell.charAt(0) != '_');
 
   const settings = useSelector((state) => state.settings.value);
   const dispatch = useDispatch();
