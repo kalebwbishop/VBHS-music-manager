@@ -8,7 +8,10 @@ require("dotenv").config();
 
 const register = asyncHandler(async (req, res) => {
   //Destructuing the inputs from req.body
-  const { fullName, email, password, accessToken: registerToken } = req.body;
+  const { fullName, email, password, registerToken } = req.body;
+
+  console.log(registerToken);
+  console.log(process.env.REGISTER_TOKEN);
 
   if (registerToken !== process.env.REGISTER_TOKEN) {
     return res.status(403).json({
