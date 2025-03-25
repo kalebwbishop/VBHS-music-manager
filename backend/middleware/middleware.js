@@ -5,7 +5,7 @@ const registerValidation = (req, res, next) => {
         "fullName": "required|string|min:3", 
         "email": "required|email", 
         "password": "required|min:6",
-        "accessToken": "required|string",
+        "registerToken": "required|string",
     };
 
     // Create a new instance of the validator
