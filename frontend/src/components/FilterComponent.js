@@ -73,7 +73,7 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
 
       const filterHeaderIdx = headers.indexOf(filter.header);
       filteredData = filteredData.filter((row) =>
-        filter.values.includes(row[filterHeaderIdx])
+        filter.values.map(v => v.toLowerCase()).includes(String(row[filterHeaderIdx]).toLowerCase())
       );
     });
 
