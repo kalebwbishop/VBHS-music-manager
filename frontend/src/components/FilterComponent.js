@@ -117,6 +117,7 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
           );
           setSelectedSheetIdxs(selectedValues);
         }}
+        style={{ width: "100%" }}
       >
         {sheetNames.map((sheetName) => (
           <option key={sheetName} value={sheetName}>

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import PropTypes from "prop-types";
 
 import StudentSearch from "../components/StudentSearch";
-import SettingsComponent from "../components/SettingsComponent";
+// import SettingsComponent from "../components/SettingsComponent";
 import EmailExportComponent from "../components/EmailExportComponent";
 import AddStudentComponent from "../components/AddStudentComponent";
 import ModifyStudentComponent from "../components/ModifyStudentComponent";
@@ -168,15 +168,6 @@ const Home = () => {
               >
                 Email/Export
               </button>
-              <button
-                onClick={() => {
-                  handleButtonClick(<SettingsComponent data={allData} />);
-                  setSidebarTitle("Settings");
-                  setSidebarContentIndex(3);
-                }}
-              >
-                Settings
-              </button>
             </div>
           </div>
           <div
@@ -296,6 +287,7 @@ const SheetButtons = ({
           className={`${styles.sheetButton} ${selectedSheetIdx === -1 ? styles.active : ""
             }`}
           onClick={() => setSelectedSheetIdx(-1)}
+          data-tooltip={selectedSheetIdx === -1 ? "Click to view all sheets" : ""}
         >
           All Sheets
         </button>
@@ -315,15 +307,13 @@ const SheetButtons = ({
                     sheetId={sheetIds[idx]}
                     displayData={displayData}
                   />
-
                 );
                 setSidebarTitle("Edit Sheet");
                 setSidebarContentIndex(2);
-
               }
-
               setSelectedSheetIdx(idx)
             }}
+            data-tooltip={selectedSheetIdx === idx ? "Click again to edit sheet" : ""}
           >
             {sheetName}
           </button>
@@ -342,6 +332,7 @@ const SheetButtons = ({
             setSidebarTitle("Add Sheet");
             setSidebarContentIndex(2);
           }}
+          data-tooltip="Add new sheet"
         >
           +
         </button>

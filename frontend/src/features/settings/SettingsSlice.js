@@ -16,7 +16,10 @@ const initialState = {
       "Student Cell": { active: false },
       "Student Email": { active: false },
       "Student First": { active: false },
-      "Student Last": { active: false }
+      "Student Last": { active: false },
+      "Instrument": { active: true },
+      "Part": { active: true },
+      "Ensemble": { active: true },
     },
     sortColumns: {
       "Grade": { active: true },
@@ -38,7 +41,8 @@ const initialState = {
 
 // Try to load settings from cookies and merge with initial state
 const savedState = getJSONCookie("settings");
-const finalInitialState = savedState ? { ...initialState, ...savedState } : initialState;
+// const finalInitialState = savedState ? { ...initialState, ...savedState } : initialState;
+const finalInitialState = initialState;
 
 export const SettingsSlice = createSlice({
   name: "settings",

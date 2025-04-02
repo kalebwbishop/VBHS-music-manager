@@ -103,10 +103,38 @@ EmailExportComponent.propTypes = {
 
 const EmailorExportComponent = ({handleNextClick}) => {
     return (
-        <>
-        <button onClick={() => handleNextClick(2)}>Email</button>
-        <button onClick={() => handleNextClick(3)}>Export</button>
-        </>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button
+                onClick={() => handleNextClick(2)}
+                style={{
+                    padding: "10px",
+                    backgroundColor: "#f78429",
+                    color: "black",
+                    border: "none",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                    width: "100%",
+                    fontWeight: "bold"
+                }}
+            >
+                Email
+            </button>
+            <button
+                onClick={() => handleNextClick(3)}
+                style={{
+                    padding: "10px",
+                    backgroundColor: "#f78429",
+                    color: "black",
+                    border: "none",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                    width: "100%",
+                    fontWeight: "bold"
+                }}
+            >
+                Export
+            </button>
+        </div>
     );
 };
 

@@ -20,6 +20,26 @@ function AddSheetComponent({ closeSidebar, setRefresh, accessToken }) {
     setColumns(updatedColumns);
   };
 
+  const handleCsvImport = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      const lines = text.split('\n');
+      if (lines.length > 0) {
+        // Get headers from first line and clean them
+        const headers = lines[0].split(',').map(header => 
+          header.trim().replace(/^["']|["']$/g, '')
+        ).filter(header => header.length > 0);
+        
+        setColumns(headers);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
     
@@ -68,6 +88,19 @@ function AddSheetComponent({ closeSidebar, setRefresh, accessToken }) {
           onChange={(e) => setSheetName(e.target.value)}
           style={{ width: "250px", padding: "5px", border: "1px solid #ccc", borderRadius: "5px" }}
         />
+
+        <div style={{ marginTop: "10px" }}>
+          <label>Import CSV Headers</label>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleCsvImport}
+            style={{ width: "250px", padding: "5px" }}
+          />
+          <p style={{ fontSize: "0.8em", color: "#666", marginTop: "5px" }}>
+            Upload a CSV file to automatically populate columns from the header row
+          </p>
+        </div>
 
         <label>Columns</label>
         {columns.map((column, index) => (

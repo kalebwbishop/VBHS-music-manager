@@ -64,28 +64,31 @@ function EditSheetComponent({ closeSidebar, setRefresh, accessToken, sheetName, 
       alert("Sheet ID is required for deletion.");
       return;
     }
-    fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet/${sheetId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to delete sheet");
-        }
-        return response.json();
+    
+    if (window.confirm("Are you sure you want to delete this sheet? This action cannot be undone.")) {
+      fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet/${sheetId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
       })
-      .then((data) => {
-        console.log("Sheet deleted successfully:", data);
-        alert("Sheet deleted successfully!");
-        closeSidebar();
-        setRefresh((prev) => !prev);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-      });
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Failed to delete sheet");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          console.log("Sheet deleted successfully:", data);
+          alert("Sheet deleted successfully!");
+          closeSidebar();
+          setRefresh((prev) => !prev);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+    }
   }
 
   return (
