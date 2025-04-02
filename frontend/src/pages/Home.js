@@ -349,94 +349,106 @@ const SheetButtons = ({
 
       {/* Right-aligned buttons */}
       <div className={styles.rightButtons}>
-        {selectedSheetIdx !== -1 && (
-          <button
-            key="add-sheet-button"
-            className={styles.sheetButton}
-            onClick={() => {
-              handleButtonClick(
-                <AddStudentComponent
-                  data={displayData}
-                  selectedSheetIdx={selectedSheetIdx}
-                  closeSidebar={closeSidebar}
-                  setRefresh={setRefresh}
-                  accessToken={accessToken}
-                  sheetIds={sheetIds}
-                />
-              );
-              setSidebarTitle("Add Student");
-              setSidebarContentIndex(4);
-            }}
-          >
-            Add
-          </button>
-        )}
-        {selectedSheetIdx !== -1 && selectedRow !== -1 && (
-          <button
-            key="modify-sheet-button"
-            className={styles.sheetButton}
-            onClick={() => {
-              handleButtonClick(
-                <ModifyStudentComponent
-                  data={displayData}
-                  selectedSheetIdx={selectedSheetIdx}
-                  closeSidebar={closeSidebar}
-                  selectedRow={selectedRow}
-                  setRefresh={setRefresh}
-                  accessToken={accessToken}
-                  sheetId={sheetIds[selectedSheetIdx]}
-                />
-              );
-              setSidebarTitle("Modify Student");
-              setSidebarContentIndex(5);
-            }}
-          >
-            Modify
-          </button>
-        )}
-        {selectedSheetIdx !== -1 && selectedRow !== -1 && (
-          <button
-            key="delete-sheet-button"
-            className={styles.sheetButton}
-            onClick={() => {
-              // Handle delete logic here
-              if (
-                window.confirm("Are you sure you want to delete this student?")
-              ) {
-                fetch(
-                  `${window.env.REACT_APP_BACKEND_URL
-                  }/api/sheet/${sheetIds[selectedSheetIdx]}/${displayData[selectedRow + 1][0]
-                  }`,
-                  {
-                    method: "DELETE",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${accessToken}`,
-                    },
+        <button
+          key="add-sheet-button"
+          className={styles.sheetButton}
+          disabled={selectedSheetIdx === -1}
+          data-tooltip={selectedSheetIdx === -1 ? "Please select a specific sheet first" : ""}
+          onClick={() => {
+            handleButtonClick(
+              <AddStudentComponent
+                data={displayData}
+                selectedSheetIdx={selectedSheetIdx}
+                closeSidebar={closeSidebar}
+                setRefresh={setRefresh}
+                accessToken={accessToken}
+                sheetIds={sheetIds}
+              />
+            );
+            setSidebarTitle("Add Student");
+            setSidebarContentIndex(4);
+          }}
+        >
+          Add
+        </button>
+        <button
+          key="modify-sheet-button"
+          className={styles.sheetButton}
+          disabled={selectedSheetIdx === -1 || selectedRow === -1}
+          data-tooltip={
+            selectedSheetIdx === -1 
+              ? "Please select a specific sheet first" 
+              : selectedRow === -1 
+                ? "Please select a student first" 
+                : ""
+          }
+          onClick={() => {
+            handleButtonClick(
+              <ModifyStudentComponent
+                data={displayData}
+                selectedSheetIdx={selectedSheetIdx}
+                closeSidebar={closeSidebar}
+                selectedRow={selectedRow}
+                setRefresh={setRefresh}
+                accessToken={accessToken}
+                sheetId={sheetIds[selectedSheetIdx]}
+              />
+            );
+            setSidebarTitle("Modify Student");
+            setSidebarContentIndex(5);
+          }}
+        >
+          Modify
+        </button>
+        <button
+          key="delete-sheet-button"
+          className={styles.sheetButton}
+          disabled={selectedSheetIdx === -1 || selectedRow === -1}
+          data-tooltip={
+            selectedSheetIdx === -1 
+              ? "Please select a specific sheet first" 
+              : selectedRow === -1 
+                ? "Please select a student first" 
+                : ""
+          }
+          onClick={() => {
+            // Handle delete logic here
+            if (
+              window.confirm("Are you sure you want to delete this student?")
+            ) {
+              fetch(
+                `${window.env.REACT_APP_BACKEND_URL
+                }/api/sheet/${sheetIds[selectedSheetIdx]}/${displayData[selectedRow + 1][0]
+                }`,
+                {
+                  method: "DELETE",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                  },
+                }
+              )
+                .then((response) => {
+                  if (!response.ok) {
+                    throw new Error("Network response was not ok");
                   }
-                )
-                  .then((response) => {
-                    if (!response.ok) {
-                      throw new Error("Network response was not ok");
-                    }
-                    return response.json();
-                  })
-                  .then((data) => {
-                    console.log("Student deleted successfully:", data);
-                    alert("Student deleted successfully!");
-                    closeSidebar();
-                    setSelectedRow(-1); // Reset selected row
-                    setRefresh((prev) => !prev); // Trigger a refresh to update the data
-                  })
-                  .catch((error) => {
-                    console.error("Error deleting student:", error);
-                  });
-              }
-            }}
-          >
-            Delete
-          </button>
-        )}
+                  return response.json();
+                })
+                .then((data) => {
+                  console.log("Student deleted successfully:", data);
+                  alert("Student deleted successfully!");
+                  closeSidebar();
+                  setSelectedRow(-1); // Reset selected row
+                  setRefresh((prev) => !prev); // Trigger a refresh to update the data
+                })
+                .catch((error) => {
+                  console.error("Error deleting student:", error);
+                });
+            }
+          }}
+        >
+          Delete
+        </button>
       </div>
     </div>
   );
