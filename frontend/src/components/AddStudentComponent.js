@@ -1,43 +1,42 @@
-import React from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import Papa from "papaparse";
 
 function AddStudentComponent({
   data,
-  selectedSheetIdx,
+  setDisplayData,
+  selectedSheetId,
   closeSidebar,
   setRefresh,
   accessToken,
-  sheetIds,
 }) {
+  const [csvData, setCsvData] = useState(null);
+  const [rowCount, setRowCount] = useState(0);
+  const [useKeyHeaders, setUseKeyHeaders] = useState(true);
+  const [rawCsvData, setRawCsvData] = useState(null);
 
   if (!data || data.length === 0) {
     return <p>No student data available.</p>;
   }
 
-  const headerRow = data[0].filter((cell) => cell.charAt(0) !== "_");
+  const sheetHeaders = data.columns.filter((cell) => cell.charAt(0) !== "_");
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    const newStudent = {};
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const formData = {};
+    for (let i = 0; i < e.target.length; i++) {
+      if (e.target[i].name) {
+        formData[e.target[i].name] = e.target[i].value;
+      }
+    }
 
-    headerRow.forEach((header) => {
-      newStudent[header] = formData.get(header);
-    });
-
-    console.log("New Student Data: ", newStudent);
-    console.log("Selected Sheet ID: ", sheetIds);
-    console.log("Selected Sheet Index: ", selectedSheetIdx);
-    console.log("Access Token: ", accessToken);
-
-    fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet/${sheetIds[selectedSheetIdx]}`, {
+    fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet/${selectedSheetId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify(newStudent),
+      body: JSON.stringify(formData),
     })
       .then((response) => {
         if (response.status !== 201) {
@@ -46,8 +45,7 @@ function AddStudentComponent({
         return response.json();
       })
       .then((data) => {
-        console.log("Success:", data);
-        event.target.reset();
+        e.target.reset();
         alert("Student added successfully!");
         closeSidebar();
         setRefresh((prev) => !prev); // Trigger a refresh to update the data
@@ -57,55 +55,101 @@ function AddStudentComponent({
       });
   };
 
+  const parseCSVData = (rawCsvData, useKeyHeaders) => {
+
+    const sheetHeaderToCsvHeaderMap = {};
+
+    sheetHeaders.forEach((header, _) => {
+      sheetHeaderToCsvHeaderMap[header] = rawCsvData[0].indexOf(header);
+    });
+
+    const parsedStudents = rawCsvData.map((row, rowIndex) => {
+      const student = {};
+      if (useKeyHeaders) {
+        sheetHeaders.forEach((header, index) => {
+          if (rowIndex !== 0) {
+            student[header] = row[sheetHeaderToCsvHeaderMap[header]] || "";
+          }
+        });
+      } else {
+        sheetHeaders.forEach((header, index) => {
+          student[header] = row[index] || "";
+        });
+      }
+
+      // Check if all fields are blank, if so, don't add the student
+      if (Object.values(student).every(value => value === "")) {
+        return null;
+      }
+
+      return student;
+    }).filter(Boolean);
+
+    const tempData = {
+      columns: sheetHeaders,
+      rows: parsedStudents,
+    };
+
+    setCsvData(parsedStudents);
+    setRowCount(parsedStudents.length);
+    setDisplayData(tempData);
+  };
+
+  const toggleHeaders = () => {
+    if (!rawCsvData) return;
+
+    const newUseKeyHeaders = !useKeyHeaders;
+    setUseKeyHeaders(newUseKeyHeaders);
+
+    parseCSVData(rawCsvData, newUseKeyHeaders);
+  };
+
   const handleCSVUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     Papa.parse(file, {
       complete: (result) => {
-        const [csvHeaders, ...csvRows] = result.data;
-        const filteredHeaders = csvHeaders.filter(
-          (header) => header.charAt(0) !== "_"
-        );
+        const csvRows = result.data;
 
-        const parsedStudents = csvRows.map((row) => {
-          const student = {};
-          filteredHeaders.forEach((header, index) => {
-            student[header] = row[index] || "";
-          });
-          return student;
-        });
+        setRawCsvData(csvRows);
 
-        fetch(
-          `${window.env.REACT_APP_BACKEND_URL}/api/sheet/${sheetIds[selectedSheetIdx]}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify(parsedStudents),
-          }
-        )
-          .then((response) => {
-            if (response.status !== 201) {
-              throw new Error("Network response was not ok");
-            }
-            return response.json();
-          })
-          .then((data) => {
-            console.log("Bulk upload success:", data);
-            alert("Students added successfully!");
-            setRefresh((prev) => !prev); // Trigger a refresh to update the data
-            closeSidebar();
-
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-          });
+        parseCSVData(csvRows, useKeyHeaders);
       },
       header: false,
     });
+  };
+
+  const handleCSVSubmit = () => {
+    if (!csvData) return;
+
+    fetch(
+      `${window.env.REACT_APP_BACKEND_URL}/api/sheet/${selectedSheetId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(csvData),
+      }
+    )
+      .then((response) => {
+        if (response.status !== 201) {
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        alert("Students added successfully!");
+        setRefresh((prev) => !prev); // Trigger a refresh to update the data
+        closeSidebar();
+        setCsvData(null);
+        setRowCount(0);
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
   };
 
   return (
@@ -115,12 +159,53 @@ function AddStudentComponent({
       {/* CSV Upload Section */}
       <div style={{ marginBottom: "15px" }}>
         <label style={{ fontWeight: "bold" }}>Upload CSV:</label>
-        <input
-          type="file"
-          accept=".csv"
-          onChange={handleCSVUpload}
-          style={{ marginTop: "5px" }}
-        />
+        <div style={{ marginTop: "5px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleCSVUpload}
+          />
+        </div>
+        {rowCount > 0 && (
+          <>
+            <p style={{ fontSize: "0.8em", color: "#666", marginTop: "5px" }}>
+              {rowCount} students will be imported
+            </p>
+            <button
+              type="button"
+              onClick={toggleHeaders}
+              style={{
+                padding: "5px 10px",
+                backgroundColor: "#6c757d",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                marginTop: "5px"
+              }}
+            >
+              {useKeyHeaders ? "Use CSV Headers as Keys" : "Use Indexed Headers"}
+            </button>
+            <p style={{ fontSize: "0.8em", color: "#666", marginTop: "5px" }}>
+              The students on the left will be added to the sheet.
+            </p>
+            <button
+              onClick={handleCSVSubmit}
+              style={{
+                width: "250px",
+                padding: "8px",
+                backgroundColor: "#007BFF",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                marginTop: "10px"
+              }}
+            >
+              Add Students from CSV
+            </button>
+          </>
+        )}
       </div>
 
       {/* Manual Student Entry Form */}
@@ -128,7 +213,7 @@ function AddStudentComponent({
         onSubmit={handleSubmit}
         style={{ display: "flex", flexDirection: "column", gap: "10px" }}
       >
-        {headerRow.map((header, index) => (
+        {sheetHeaders.map((header, index) => (
           <div key={index} style={{ display: "flex", flexDirection: "column" }}>
             <label>{header}</label>
             <input
@@ -164,11 +249,11 @@ function AddStudentComponent({
 
 AddStudentComponent.propTypes = {
   data: PropTypes.array.isRequired,
-  selectedSheetIdx: PropTypes.number.isRequired,
   closeSidebar: PropTypes.func.isRequired,
   setRefresh: PropTypes.func.isRequired,
   accessToken: PropTypes.string.isRequired,
-  sheetIds: PropTypes.array.isRequired,
+  setDisplayData: PropTypes.func.isRequired,
+  selectedSheetId: PropTypes.string.isRequired,
 };
 
 export default AddStudentComponent;

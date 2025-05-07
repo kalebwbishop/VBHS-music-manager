@@ -3,13 +3,14 @@
     right: 0;
     top: 0;
     height: 100vh;
-    width: 300px; /* Adjust width as needed */
+    width: 400px; /* Adjust width as needed */
     background-color: #f4f4f4;
     box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
     transform: translateX(100%);
     transition: transform 0.3s ease;
     z-index: 1000;
     padding: 20px;
+    margin-bottom: 30px;
     overflow-y: auto;
 }
 
@@ -21,7 +22,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 10px;
 }
 
 .closeButton {
@@ -29,8 +29,12 @@
     border: none;
     font-size: 24px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    height: 100%;
 }
 
 .sidebarContent {
     margin-top: 20px;
+    padding-bottom: 80px; /* Add padding to prevent content from being hidden at the bottom */
 }

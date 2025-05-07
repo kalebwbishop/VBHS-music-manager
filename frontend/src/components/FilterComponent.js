@@ -1,106 +1,122 @@
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import { useSelector } from "react-redux";
 import { getJSONCookie, setJSONCookie } from "../utils/cookieUtils";
-import combineSheets from "../utils/combineSheets";
 
-function FilterComponent({ allData, setFilteredData, sheetNames }) {
-  const [selectedSheetIdxs, setSelectedSheetIdxs] = useState(
-    Array.from({ length: allData.length }, (_, i) => i)
-  );
-  const [headers, setHeaders] = useState([]);
-  const [data, setData] = useState([]);
+function FilterComponent({ data, setFilteredData }) {
+  const [selectedSheetIds, setSelectedSheetIds] = useState([]);
+  const [columns, setColumns] = useState([]);
   const [filters, setFilters] = useState([]);
 
   // Retrieve saved selected columns from cookies on load
   useEffect(() => {
-    const savedSelectedSheets = getJSONCookie("selectedFilterSheets") || [];
-    setSelectedSheetIdxs(savedSelectedSheets);
+    console.log('FilterComponent mounting...');
+    const savedSelectedSheetIds = getJSONCookie("filterSelectedSheetIds") || [];
+    console.log('Retrieved savedSelectedSheetIds from cookie:', savedSelectedSheetIds);
+    console.log('Raw cookie value:', document.cookie);
+    setSelectedSheetIds(savedSelectedSheetIds);
 
-    const savedFilters = getJSONCookie("selectedFilters") || [];
+    const savedFilters = getJSONCookie("filterSelectedColumns") || [];
+    console.log('Retrieved savedFilters from cookie:', savedFilters);
     setFilters(savedFilters);
   }, []);
 
   const handleFilterChange = (filterIdx, field, value) => {
-    let updatedFilters = [...filters, {}].map((filter, idx) => {
-      if (idx !== filterIdx) {
-        return filter;
-      }
+    let updatedFilters = [...filters];
 
-      if (field === "header") {
-        if (value === "") {
-          return undefined;
-        }
-        return { header: value };
+    if (filterIdx >= updatedFilters.length) {
+      updatedFilters.push({});
+    }
+
+    if (field === "header") {
+      if (value === "") {
+        updatedFilters[filterIdx] = undefined;
+      } else {
+        updatedFilters[filterIdx] = { ...updatedFilters[filterIdx], header: value };
       }
-      if (field === "values") {
-        return {
-          ...filter,
-          values: Array.from(value).map((option) => option.value),
-        };
-      }
-    });
+    } else if (field === "values") {
+      updatedFilters[filterIdx] = {
+        ...updatedFilters[filterIdx],
+        values: Array.from(value).map((option) => option.value),
+      };
+    }
 
     updatedFilters = updatedFilters.filter(
       (filter) => filter !== undefined && filter.header !== undefined
     );
 
-    if (
-      updatedFilters.length > 0 &&
-      Object.keys(updatedFilters[updatedFilters.length - 1]).length === 0
-    ) {
-      updatedFilters = updatedFilters.slice(0, -1);
-    }
-
     setFilters(updatedFilters);
-    setJSONCookie("selectedFilters", updatedFilters);
+    setJSONCookie("filterSelectedColumns", updatedFilters);
   };
 
   const deleteFilter = (index) => {
     const updatedFilters = filters.filter((_, i) => i !== index);
     setFilters(updatedFilters);
+    setJSONCookie("filterSelectedColumns", updatedFilters);
   };
 
-  const applyFilters = (filters) => {
-    let filteredData = data;
+  const applyFilters = () => {
+    if (!data || data.length === 0) return;
 
+    // Get selected sheets
+    const selectedSheets = data.filter(sheet => selectedSheetIds.includes(sheet._id));
+    
+    if (selectedSheets.length === 0) {
+      setFilteredData({ columns: [], rows: [] });
+      return;
+    }
+
+    // Combine data from selected sheets
+    let filteredData = {
+      columns: selectedSheets.map(sheet => sheet.columns).flat(),
+      rows: selectedSheets.map(sheet => sheet.rows).flat()
+    };
+
+    // Remove duplicates from columns
+    filteredData.columns = [...new Set(filteredData.columns)];
+
+    // Apply filters
     filters.forEach((filter) => {
-      if (!filter.values) return;
-      if (filter.values.length === 0) return;
-      if (!filter.header) return;
-      if (filter.header === "") return;
-      if (headers.indexOf(filter.header) === -1) return;
+      if (!filter.values || filter.values.length === 0 || !filter.header) return;
 
-      const filterHeaderIdx = headers.indexOf(filter.header);
-      filteredData = filteredData.filter((row) =>
-        filter.values.map(v => v.toLowerCase()).includes(String(row[filterHeaderIdx]).toLowerCase())
-      );
+      filteredData.rows = filteredData.rows.filter((row) => {
+        const rowValue = String(row[filter.header]).toLowerCase();
+        return filter.values.some(v => v.toLowerCase() === rowValue);
+      });
     });
 
-    setFilteredData([headers, ...filteredData]);
+    setFilteredData(filteredData);
   };
 
+  // Update columns when selected sheets change
   useEffect(() => {
-    applyFilters(filters);
-  }, [data, filters]);
+    if (!data || data.length === 0) return;
+
+    const selectedSheets = data.filter(sheet => selectedSheetIds.includes(sheet._id));
+    
+    if (selectedSheets.length > 0) {
+      // Get unique columns from all selected sheets
+      const allColumns = selectedSheets.map(sheet => sheet.columns).flat();
+      setColumns([...new Set(allColumns)]);
+    } else {
+      setColumns([]);
+    }
+  }, [selectedSheetIds, data]);
+
+  // Apply filters when data, filters, or selected sheets change
+  useEffect(() => {
+    applyFilters();
+  }, [data, filters, selectedSheetIds]);
 
   const handleSelectAllSheets = () => {
-    setSelectedSheetIdxs(Array.from({ length: allData.length }, (_, i) => i));
+    const allSheetIds = data.map(sheet => sheet._id);
+    setSelectedSheetIds(allSheetIds);
+    setJSONCookie("filterSelectedSheetIds", allSheetIds);
   };
 
   const handleDeselectAllSheets = () => {
-    setSelectedSheetIdxs([]);
+    setSelectedSheetIds([]);
+    setJSONCookie("filterSelectedSheetIds", []);
   };
-
-  useEffect(() => {
-    const selectedSheets = selectedSheetIdxs.map((idx) => allData[idx]);
-    const combinedData = combineSheets(selectedSheets, true);
-
-    setHeaders(combinedData[0]);
-    setData(combinedData.slice(1));
-
-    setJSONCookie("selectedFilterSheets", selectedSheetIdxs);
-  }, [selectedSheetIdxs]);
 
   return (
     <div>
@@ -110,23 +126,24 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
       <p>Select Sheets:</p>
       <select
         multiple
-        value={Array.from(selectedSheetIdxs.map((idx) => sheetNames[idx]))}
+        value={selectedSheetIds}
         onChange={(e) => {
           const selectedValues = Array.from(e.target.selectedOptions).map(
-            (option) => sheetNames.indexOf(option.value)
+            (option) => option.value
           );
-          setSelectedSheetIdxs(selectedValues);
+          setSelectedSheetIds(selectedValues);
+          setJSONCookie("filterSelectedSheetIds", selectedValues);
         }}
         style={{ width: "100%" }}
       >
-        {sheetNames.map((sheetName) => (
-          <option key={sheetName} value={sheetName}>
-            {sheetName}
+        {data.slice(1).map((sheet) => (
+          <option key={sheet._id} value={sheet._id}>
+            {sheet.name}
           </option>
         ))}
       </select>
       <br />
-      {selectedSheetIdxs.length === 0 ? (
+      {selectedSheetIds.length === 0 ? (
         <button onClick={handleSelectAllSheets}>Select All</button>
       ) : (
         <button onClick={handleDeselectAllSheets}>Deselect All</button>
@@ -139,7 +156,7 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
 
       {[...filters, {}].map((filter, index) => (
         <div
-          key={filter.column + "-" + index}
+          key={filter.header + "-" + index}
           style={{
             marginTop: "10px",
             padding: "5px",
@@ -152,18 +169,15 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
               alignItems: "center",
             }}
           >
-            {/* Dropdown for selecting the column header */}
-            <HeaderSelection
-              headers={headers}
-              selectedHeader={filter.header}
-              handleOnChange={(selectedHeaderIdx) => {
-                handleFilterChange(index, "header", headers[selectedHeaderIdx]);
+            <ColumnSelection
+              selectedColumn={filter.header}
+              handleOnChange={(selectedColumn) => {
+                handleFilterChange(index, "header", selectedColumn);
               }}
             />
 
             {index !== filters.length && (
               <>
-                {/* Delete filter button */}
                 <button
                   onClick={() => deleteFilter(index)}
                   style={{ marginLeft: "5px", color: "red" }}
@@ -183,9 +197,7 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
           </div>
 
           {index !== filters.length && (
-            // Dropdown for selecting the filter values
             <MultiSelectOptions
-              headers={headers}
               data={data}
               filterHeader={filter.header}
               selectedValues={filter.values}
@@ -201,92 +213,90 @@ function FilterComponent({ allData, setFilteredData, sheetNames }) {
 }
 
 FilterComponent.propTypes = {
-  allData: PropTypes.array.isRequired,
+  data: PropTypes.array.isRequired,
   setFilteredData: PropTypes.func.isRequired,
-  sheetNames: PropTypes.array.isRequired,
 };
 
-function HeaderSelection({ headers, selectedHeader, handleOnChange }) {
-  const settings = useSelector((state) => state.settings.value);
-  let activeHeaders = headers;
-
-  if (settings?.filterColumns) {
-    activeHeaders = headers.filter((header) => {
-      const headerSettings = settings?.filterColumns[header];
-      return headerSettings?.active || headerSettings === undefined;
-    });
-  }
-
-  const selectValue = selectedHeader
-    ? activeHeaders.indexOf(selectedHeader)
-    : -2;
+function ColumnSelection({ selectedColumn, handleOnChange }) {
+  const filterColumns = [
+    "Grade",
+    "Instrument",
+    "Part",
+    "Ensemble",
+  ];
 
   return (
     <select
-      value={selectValue}
+      value={selectedColumn || -1}
       onChange={(e) => {
-        handleOnChange(headers.indexOf(activeHeaders[e.target.value]));
+        handleOnChange(e.target.value);
       }}
     >
-      <option value={-2}>Select Column</option>
-      {activeHeaders.map((header, idx) => (
-        <option key={header} value={idx}>
-          {header}
+      <option value={-1}>Select Column</option>
+      {filterColumns.map((column) => (
+        <option key={column} value={column}>
+          {column}
         </option>
       ))}
-      {selectValue === -1 && (
-        <option value={-1}>{`${selectedHeader} (No Values)`}</option>
-      )}
     </select>
   );
 }
 
-HeaderSelection.propTypes = {
-  headers: PropTypes.array.isRequired,
+ColumnSelection.propTypes = {
   selectedHeader: PropTypes.string,
   handleOnChange: PropTypes.func.isRequired,
 };
 
 function MultiSelectOptions({
-  headers,
   data,
   filterHeader,
   selectedValues,
   handleOnChange,
 }) {
-  const filterHeaderIdx = headers.indexOf(filterHeader);
+  // Get unique values from all selected sheets
+  let uniqueValues = [];
+  data[0].rows.forEach(row => {
+    if (row[filterHeader]) {
+      uniqueValues.push(row[filterHeader]);
+    }
+  });
 
-  let uniqueValues = data.map((row) => row[filterHeaderIdx]);
-  if (selectedValues) {
-    uniqueValues = [...uniqueValues, ...selectedValues];
-  }
-  uniqueValues = [...new Set(uniqueValues)];
-  uniqueValues = uniqueValues.filter(
-    (value) => value !== undefined && value !== "" && value !== null
-  );
+  // Remove duplicates and invalid values
+  uniqueValues = [...new Set(uniqueValues)]
+    .filter(value => value !== undefined && value !== "" && value !== null)
+    .sort((a, b) => String(a).localeCompare(String(b)));
 
   if (uniqueValues.length === 0) {
-    return null;
+    return <p>No values available for this column</p>;
   }
 
   return (
-    <select
-      multiple={true}
-      onChange={handleOnChange}
-      value={selectedValues || []}
-      style={{ width: "100%" }}
-    >
-      {uniqueValues.map((value, i) => (
-        <option key={value} value={value}>
-          {value}
-        </option>
-      ))}
-    </select>
+    <div style={{ marginTop: '10px' }}>
+      <select
+        multiple={true}
+        onChange={handleOnChange}
+        value={selectedValues || []}
+        style={{ 
+          width: "100%",
+          minHeight: "100px",
+          padding: "5px"
+        }}
+      >
+        {uniqueValues.map((value) => (
+          <option key={value} value={value}>
+            {value}
+          </option>
+        ))}
+      </select>
+      <p style={{ fontSize: "0.8em", color: "#666", marginTop: "5px" }}>
+        Hold Ctrl (or Cmd on Mac) to select multiple values
+      </p>
+    </div>
   );
 }
 
 MultiSelectOptions.propTypes = {
-  headers: PropTypes.array.isRequired,
+  columns: PropTypes.array.isRequired,
   data: PropTypes.array.isRequired,
   filterHeader: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
     .isRequired,

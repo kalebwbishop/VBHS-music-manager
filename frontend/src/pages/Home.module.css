@@ -18,12 +18,13 @@
 }
 
 .tableContainer {
-  overflow: auto;
-  max-height: calc(100vh - 200px);
-  max-width: 100%;
   flex: 1;
+  overflow: auto;
+  position: relative;
   padding: 0;
-  position: relative; /* Ensure proper stacking context */
+  min-height: 0; /* Important for flex child */
+  transition: all 0.3s ease-in-out;
+  width: 100%;
 }
 
 .cell,
@@ -68,22 +69,24 @@
   right: 0;
   top: 0;
   height: 100vh;
-  width: 300px; /* Adjust width as needed */
+  width: 400px;
   background: white;
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
   transform: translateX(100%);
-  transition: transform 0.3s ease-in-out;
+  transition: transform 0.5s ease-in-out;
   display: flex;
   flex-direction: column;
+  z-index: 100;
 }
 
 .sidebar.show {
   transform: translateX(0);
 }
 
-.containerSidebarOpen {
-  width: calc(100% - 350px);
+.tableContainerSidebarOpen {
+  width: calc(100% - 400px - 50px);
   min-width: calc(50% - 45px);
+  transition: all 0.3s ease-in-out;
 }
 
 .closeButton {
@@ -114,10 +117,10 @@
   font-weight: 500;
   line-height: 20px;
   list-style: none;
-  margin-right: 10px;
+  margin-right: 0;
   padding: 5px 12px;
   text-align: center;
-  transition: all 200ms;
+  transition: all 0.2s ease;
   vertical-align: baseline;
   white-space: nowrap;
   user-select: none;
@@ -181,11 +184,16 @@
   position: sticky;
   bottom: 0;
   z-index: 10;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .sheetButtonGroup {
   display: flex;
-  gap: 8px; /* Spacing between sheet buttons */
+  flex-wrap: wrap;
+  gap: 5px;
+  position: relative;
+  align-items: center;
 }
 
 .rightButtons {
@@ -199,7 +207,11 @@
 }
 
 .sheetButton:hover {
-  background-color: rgba(51, 51, 51, 0.1);
+  background-color: #e9ecef;
+}
+
+.sheetButton:active {
+  cursor: grabbing;
 }
 
 .sheetButton.active {
@@ -235,6 +247,60 @@
   margin-bottom: -5px;
 }
 
+.sheetButton.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.sheetButtonWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.dropIndicator {
+  width: 3px;
+  height: 24px;
+  background-color: #f78429;
+  margin: 0 2px;
+  animation: pulse 1.5s infinite;
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.dropIndicator::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background-color: #f78429;
+  border-radius: 50%;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
+/* Remove the old drop zone indicator */
+.sheetButtonGroup::after {
+  display: none;
+}
+
+.sheetButtonGroup.dragOver::after {
+  display: none;
+}
+
 .container {
   position: relative;
   width: 100%;
@@ -242,5 +308,7 @@
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease-in-out;
-  overflow: hidden; /* Prevent container from scrolling */
+  overflow: hidden;
+  background-color: white;
 }
+

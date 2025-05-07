@@ -1,55 +1,53 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 
-function StudentSearch({ data, setDisplayData, sidebarContentIndex }) {
-  const [searchValue, setSearchValue] = useState("");
-
-  const mergedData = data
+function StudentSearch({ data, setDisplayData, sidebarContentIndex, selectedSheetId, setSearchValue, searchValue }) {
+  const originalDataRef = useRef(null);
 
   const applyFilter = () => {
-    if (!mergedData || mergedData.length === 0) {
+    if (!data || data.length === 0) {
       return;
     }
 
-    const headerRow = mergedData[0];
-    const dataRows = mergedData.slice(1);
+    const allData = data.find(sheet => sheet._id === selectedSheetId);
+    if (!allData) {
+      return;
+    }
+
+    // Store the original data when it changes
+    originalDataRef.current = allData;
 
     const firstNameColumn = "Student First";
     const lastNameColumn = "Student Last";
+    const fullNameColumn = "Student Name";
 
-    let firstNameIndex = headerRow.indexOf(firstNameColumn);
-    let lastNameIndex = headerRow.indexOf(lastNameColumn);
+    let firstNameIndex = allData.columns.indexOf(firstNameColumn);
+    let lastNameIndex = allData.columns.indexOf(lastNameColumn);
+    let fullNameIndex = allData.columns.indexOf(fullNameColumn);
 
-    if (firstNameIndex === -1) {
-      firstNameIndex = 0;
-    }
-
-    if (lastNameIndex === -1) {
-      lastNameIndex = 1;
-    }
-
-    const filteredDataRows = dataRows.filter((dataRow) => {
+    const filteredDataRows = allData.rows.filter((dataRow) => {
       if (searchValue === "") {
         return true;
       }
 
-      if (firstNameIndex >= headerRow.length || lastNameIndex >= headerRow.length) {
+      if (firstNameIndex >= allData.columns.length || lastNameIndex >= allData.columns.length || fullNameIndex >= allData.columns.length) {
+        console.log("Column not found");
         return false;
       }
 
       // Check if the first, last, or full name contains the search value
-      const firstNameData = dataRow[firstNameIndex];
+      const firstNameData = dataRow["Student First"] || "";
+      const lastNameData = dataRow["Student Last"] || "";
+      const fullNameData = dataRow["Student Name"] || "";
+
       const firstName = firstNameData
         ? firstNameData.toLowerCase().includes(searchValue.toLowerCase())
         : false;
 
-      const lastNameData = dataRow[lastNameIndex];
       const lastName = lastNameData
         ? lastNameData.toLowerCase().includes(searchValue.toLowerCase())
         : false;
 
-      const fullNameData =
-        dataRow[firstNameIndex] + " " + dataRow[lastNameIndex];
       const fullName = fullNameData
         .toLowerCase()
         .includes(searchValue.toLowerCase());
@@ -57,24 +55,49 @@ function StudentSearch({ data, setDisplayData, sidebarContentIndex }) {
       return firstName || lastName || fullName;
     });
 
-    const filteredData = [headerRow, ...filteredDataRows];
+    const filteredData = {
+      columns: allData.columns,
+      rows: filteredDataRows
+    }
 
     setDisplayData(filteredData);
   };
 
   useEffect(() => {
     applyFilter();
-  }, [data, searchValue]);
+  }, [searchValue, selectedSheetId]);
 
   return (
-    <input
-      onChange={(event) => {
-        setSearchValue(event.target.value);
-      }}
-      style={{ display: sidebarContentIndex === 1 ? "none" : "block" }}
-      type="text"
-      placeholder="Search For Student..."
-    />
+    <div style={{ position: 'relative', display: sidebarContentIndex === 1 ? 'none' : 'block' }}>
+      <input
+        onChange={(event) => {
+          setSearchValue(event.target.value);
+        }}
+        value={searchValue}
+        type="text"
+        placeholder="Search For Student..."
+        style={{ paddingRight: '30px' }}
+      />
+      {searchValue && (
+        <button
+          onClick={() => setSearchValue('')}
+          style={{
+            position: 'absolute',
+            right: '8px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '0',
+            fontSize: '16px',
+            color: '#666'
+          }}
+        >
+          ×
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -82,6 +105,9 @@ StudentSearch.propTypes = {
   data: PropTypes.array.isRequired,
   setDisplayData: PropTypes.func.isRequired,
   sidebarContentIndex: PropTypes.number.isRequired,
+  selectedSheetId: PropTypes.string.isRequired,
+  setSearchValue: PropTypes.func.isRequired,
+  searchValue: PropTypes.string.isRequired,
 };
 
 export default StudentSearch;

@@ -6,19 +6,20 @@ const { encryptObject, decryptObject } = require("../utils/encryption");
 async function getSheetsRows(req, res) {
     try {
         const sheets = await Sheet.find(); // Fetch all sheet metadata dynamically
-        const responseData = {};
+        const responseData = [];
 
         await Promise.all(sheets.map(async (sheet) => {
             try {
                 let records = await SheetRow.find({ sheetId: sheet._id });
 
                 if (records.length === 0) {
-                    responseData[sheet.name] = { _id: sheet._id, columns: sheet.columns, rows: [] };
+                    responseData.push({ _id: sheet._id, name: sheet.name, columns: sheet.columns, rows: [] });
                     return;
                 }
 
-                responseData[sheet.name] = {
+                responseData.push({
                     _id: sheet._id,
+                    name: sheet.name,
                     columns: sheet.columns,
                     rows: records.map(record => {
                         const decryptedData = decryptObject(record.data);
@@ -27,14 +28,15 @@ async function getSheetsRows(req, res) {
                             ...decryptedData
                         };
                     })
-                };
+                });
             } catch (error) {
                 console.error(`Error fetching rows for sheet ${sheet.name}:`, error);
-                responseData[sheet.name] = { error: `Failed to fetch rows ${error}` };
+                responseData.push({ _id: sheet._id, name: sheet.name, columns: sheet.columns, rows: [] });
             }
         }));
 
         res.json(responseData);
+        console.log(responseData);
     } catch (error) {
         console.error("Error fetching all sheets:", error);
         res.status(500).json({ message: "Error fetching sheets", error });
@@ -49,7 +51,7 @@ async function addSheet(req, res) {
         const newSheet = new Sheet({ name, columns });
 
         await newSheet.save();
-        res.status(201).json({ message: "Sheet added successfully" });
+        res.status(201).json({ message: "Sheet added successfully", data: { id: newSheet._id } });
     } catch (error) {
         console.error("Error adding sheet:", error);
         res.status(500).json({ message: "Error adding sheet", error });
@@ -120,7 +122,19 @@ async function deleteSheet(req, res) {
     const { sheetId } = req.params;
 
     try {
-        await Sheet.findByIdAndDelete(sheetId);
+        // Delete the sheet first
+        const deletedSheet = await Sheet.findByIdAndDelete(sheetId);
+        if (!deletedSheet) {
+            return res.status(404).json({ message: "Sheet not found" });
+        }
+
+        // Then delete all associated rows
+        const result = await SheetRow.deleteMany({ sheetId });
+        if (result.deletedCount === 0) {
+            console.log("No rows found to delete for sheet:", sheetId);
+        } else {
+            console.log(`Deleted ${result.deletedCount} rows for sheet:`, sheetId);
+        }
         res.status(200).json({ message: "Sheet deleted successfully" });
     } catch (error) {
         console.error("Error deleting sheet:", error);
@@ -149,7 +163,40 @@ async function addSheetRow(req, res) {
                     data: encryptObject(student)
                 }
             });
-            const newStudents = await SheetRow.insertMany(encryptedRows);
+            // Check for existing students first
+            const existingStudents = await Promise.all(
+                encryptedRows.map(row => 
+                    SheetRow.findOne({
+                        sheetId: sheet._id,
+                        'data.Student Name': row.data['Student Name']
+                    })
+                )
+            );
+
+            // Update existing students and create new ones
+            const studentsToCreate = [];
+            const updatePromises = [];
+
+            encryptedRows.forEach((row, index) => {
+                if (existingStudents[index]) {
+                    updatePromises.push(
+                        SheetRow.findByIdAndUpdate(
+                            existingStudents[index]._id,
+                            { data: row.data },
+                            { new: true }
+                        )
+                    );
+                } else {
+                    studentsToCreate.push(row);
+                }
+            });
+
+            const [updatedStudents, newStudents] = await Promise.all([
+                Promise.all(updatePromises),
+                studentsToCreate.length > 0 ? SheetRow.insertMany(studentsToCreate) : []
+            ]);
+
+            const allStudents = [...updatedStudents, ...newStudents];
             res.status(201).json({ message: "Students added successfully", students: newStudents });
         } else {
             // Single insert
@@ -159,7 +206,21 @@ async function addSheetRow(req, res) {
                 sheetId: sheet._id,
                 data: encryptedData
             });
-            await newStudent.save();
+            // Check if student with same name already exists
+            const existingStudent = await SheetRow.findOne({
+                sheetId: sheet._id,
+                'data.Student Name': encryptedData['Student Name']
+            });
+
+            if (existingStudent) {
+                // Update existing student
+                existingStudent.data = encryptedData;
+                await existingStudent.save();
+                newStudent = existingStudent;
+            } else {
+                // Save new student
+                await newStudent.save();
+            }
             res.status(201).json({ message: "Student added successfully", student: newStudent });
         }
     } catch (error) {

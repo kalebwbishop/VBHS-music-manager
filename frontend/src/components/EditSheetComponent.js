@@ -1,10 +1,15 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
-
+import { setJSONCookie, getJSONCookie } from "../utils/cookieUtils";
 
 function EditSheetComponent({ closeSidebar, setRefresh, accessToken, sheetName, sheetId, displayData }) {
   const [sheetNameDisp, setSheetName] = useState(sheetName);
-  const [columns, setColumns] = useState(displayData[0].filter((cell) => cell.charAt(0) !== "_"));
+  const [columns, setColumns] = useState(displayData.columns.filter((cell) => cell.charAt(0) !== "_"));
+  const [position, setPosition] = useState(() => {
+    const sheetOrder = getJSONCookie("sheetOrder") || [];
+    const currentIndex = sheetOrder.findIndex(order => order.id === sheetId);
+    return currentIndex !== -1 ? currentIndex : sheetOrder.length;
+  });
 
   const handleColumnChange = (index, value) => {
     const updatedColumns = [...columns];
@@ -29,7 +34,21 @@ function EditSheetComponent({ closeSidebar, setRefresh, accessToken, sheetName, 
       return;
     }
     
-    const newSheet = { name: sheetNameDisp, columns };
+    const newSheet = { name: sheetNameDisp, columns, position };
+    
+    // Update sheet order in cookie
+    const sheetOrder = getJSONCookie("sheetOrder") || [];
+    const existingIndex = sheetOrder.findIndex(order => order.id === sheetId);
+    
+    if (existingIndex !== -1) {
+      sheetOrder[existingIndex] = { id: sheetId, position };
+    } else {
+      sheetOrder.push({ id: sheetId, position });
+    }
+    
+    // Sort by position and save
+    sheetOrder.sort((a, b) => a.position - b.position);
+    setJSONCookie("sheetOrder", sheetOrder);
     
     fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet/${sheetId}`, {
       method: "PATCH",
@@ -47,7 +66,7 @@ function EditSheetComponent({ closeSidebar, setRefresh, accessToken, sheetName, 
       })
       .then((data) => {
         console.log("Sheet edited successfully:", data);
-        alert("Sheet added successfully!");
+        alert("Sheet edited successfully!");
         setSheetName("");
         setColumns([""]);
         closeSidebar();
@@ -66,6 +85,11 @@ function EditSheetComponent({ closeSidebar, setRefresh, accessToken, sheetName, 
     }
     
     if (window.confirm("Are you sure you want to delete this sheet? This action cannot be undone.")) {
+      // Remove from sheet order
+      const sheetOrder = getJSONCookie("sheetOrder") || [];
+      const updatedOrder = sheetOrder.filter(order => order.id !== sheetId);
+      setJSONCookie("sheetOrder", updatedOrder);
+      
       fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet/${sheetId}`, {
         method: "DELETE",
         headers: {
@@ -93,13 +117,22 @@ function EditSheetComponent({ closeSidebar, setRefresh, accessToken, sheetName, 
 
   return (
     <div style={{ paddingBottom: "50px" }}>
-      <p>Create a new sheet.</p>
+      <p>Edit sheet settings.</p>
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         <label>Sheet Name</label>
         <input
           type="text"
           value={sheetNameDisp}
           onChange={(e) => setSheetName(e.target.value)}
+          style={{ width: "250px", padding: "5px", border: "1px solid #ccc", borderRadius: "5px" }}
+        />
+
+        <label>Position (0-based index)</label>
+        <input
+          type="number"
+          min="0"
+          value={position}
+          onChange={(e) => setPosition(parseInt(e.target.value) || 0)}
           style={{ width: "250px", padding: "5px", border: "1px solid #ccc", borderRadius: "5px" }}
         />
 
@@ -117,7 +150,7 @@ function EditSheetComponent({ closeSidebar, setRefresh, accessToken, sheetName, 
         ))}
         <button type="button" onClick={addColumn} style={{ width: "250px", padding: "8px", backgroundColor: "green", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Add Column</button>
         
-        <button type="submit" style={{ width: "250px", padding: "8px", backgroundColor: "#007BFF", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Edit Sheet</button>
+        <button type="submit" onClick={handleSubmit} style={{ width: "250px", padding: "8px", backgroundColor: "#007BFF", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Edit Sheet</button>
         <button type="button" onClick={handleDelete} style={{ width: "250px", padding: "8px", backgroundColor: "#FF0B00", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Delete Sheet</button>
       </form>
     </div>

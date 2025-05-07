@@ -10,7 +10,7 @@ router.patch("/:sheetId", verifyToken, updateSheet);
 router.delete("/:sheetId", verifyToken, deleteSheet);
 
 router.post("/:sheetId", verifyToken, addSheetRow);
-router.patch("/:sheetId/:rowId", verifyToken, updateSheetRow);
-router.delete("/:sheetId/:rowId", verifyToken, deleteSheetRow);
+router.patch("/sheetRow/:rowId", verifyToken, updateSheetRow);
+router.delete("/sheetRow/:rowId", verifyToken, deleteSheetRow);
 
 module.exports = router;
