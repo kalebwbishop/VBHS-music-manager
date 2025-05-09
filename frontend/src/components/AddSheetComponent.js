@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 
-function AddSheetComponent({ closeSidebar, setRefresh, accessToken, setDisplayData, setSelectedSheetId }) {
+function AddSheetComponent({ closeSidebar, accessToken, setDisplayData, setSelectedSheetId }) {
   const [sheetName, setSheetName] = useState("");
-  const [columns, setColumns] = useState([""]);
+  const [columns, setColumns] = useState(["Student First", "Student Last"]);
   const [rowCount, setRowCount] = useState(0);
-  const [hasHeaders, setHasHeaders] = useState(false);
+  const [hasHeaders, setHasHeaders] = useState(true);
   const [csvData, setCsvData] = useState(null);
   const [previewData, setPreviewData] = useState([]);
 
   const handleColumnChange = (index, value) => {
+    if (index < 2) return; // Prevent changes to first two columns
     const updatedColumns = [...columns];
     updatedColumns[index] = value;
     setColumns(updatedColumns);
@@ -20,6 +21,7 @@ function AddSheetComponent({ closeSidebar, setRefresh, accessToken, setDisplayDa
   };
 
   const removeColumn = (index) => {
+    if (index < 2) return; // Prevent removal of first two columns
     const updatedColumns = columns.filter((_, i) => i !== index);
     setColumns(updatedColumns);
   };
@@ -31,18 +33,22 @@ function AddSheetComponent({ closeSidebar, setRefresh, accessToken, setDisplayDa
     setHasHeaders(newHasHeaders);
 
     if (newHasHeaders) {
-      // Convert to headers
+      // Convert to headers, but keep first two columns fixed
       const firstRow = csvData[0];
-      setColumns(firstRow.map(header =>
-        header.trim().replace(/^["']|["']$/g, '')
-      ).filter(header => header.length > 0));
+      setColumns([
+        "Student First",
+        "Student Last",
+        ...firstRow.slice(2).map(header =>
+          header.trim().replace(/^["']|["']$/g, '')
+        ).filter(header => header.length > 0)
+      ]);
       setRowCount(csvData.length - 1);
       setPreviewData(csvData.slice(1));
     } else {
-      // Convert to placeholders
+      // Convert to placeholders, but keep first two columns fixed
       const numColumns = csvData[0].length;
-      const placeholders = Array(numColumns).fill().map((_, i) => `Placeholder ${i + 1}`);
-      setColumns(placeholders);
+      const placeholders = Array(numColumns - 2).fill().map((_, i) => `Placeholder ${i + 1}`);
+      setColumns(["Student First", "Student Last", ...placeholders]);
       setRowCount(csvData.length);
       setPreviewData(csvData);
     }
@@ -67,19 +73,27 @@ function AddSheetComponent({ closeSidebar, setRefresh, accessToken, setDisplayDa
         setCsvData(lines);
 
         // Set preview data
-        console.log("Testing", lines)
         setPreviewData(lines);
         
         if (hasHeaders) {
-          // Get headers from first line and clean them
-          const headers = lines[0].filter(header => header.length > 0);
-          setColumns(headers);
+          // Convert to headers, but keep first two columns fixed
+          const firstRow = lines[0];
+          setColumns([
+            "Student First",
+            "Student Last",
+            ...firstRow.slice(2).map(header =>
+              header.trim().replace(/^["']|["']$/g, '')
+            ).filter(header => header.length > 0)
+          ]);
           setRowCount(lines.length - 1);
+          setPreviewData(lines.slice(1));
         } else {
-          // If no headers, use the first row to determine number of columns
-          const placeholderColumns = lines[0].map((_, index) => `Placeholder ${index + 1}`);
-          setColumns(placeholderColumns);
+          // Convert to placeholders, but keep first two columns fixed
+          const numColumns = lines[0].length;
+          const placeholders = Array(numColumns - 2).fill().map((_, i) => `Placeholder ${i + 1}`);
+          setColumns(["Student First", "Student Last", ...placeholders]);
           setRowCount(lines.length);
+          setPreviewData(lines);
         }
       }
     };
@@ -111,7 +125,6 @@ function AddSheetComponent({ closeSidebar, setRefresh, accessToken, setDisplayDa
         return response.json();
       })
       .then((data) => {
-        console.log("Sheet created successfully:", data);
         fetch(`${window.env.REACT_APP_BACKEND_URL}/api/sheet/${data.data.id}`, {
           method: "POST",
           headers: {
@@ -130,15 +143,17 @@ function AddSheetComponent({ closeSidebar, setRefresh, accessToken, setDisplayDa
           if (!response.ok) {
             throw new Error("Failed to create sheet rows");
           }
+          if (response.status === 401) {
+            throw new Error("Unauthorized");
+            
+          }
           return response.json();
         })
         .then((data) => {
-          console.log("Sheet rows created successfully:", data);
           alert("Sheet added successfully!");
           setSheetName("");
-          setColumns([""]);
+          setColumns(["Student First", "Student Last"]);
           closeSidebar();
-          setRefresh((prev) => !prev);
 
           if (data.students.length > 0) {
             setSelectedSheetId(data.students[0].sheetId);
@@ -147,6 +162,7 @@ function AddSheetComponent({ closeSidebar, setRefresh, accessToken, setDisplayDa
       })
       .catch((error) => {
         console.error("Error:", error);
+        alert("Error adding sheet rows", error);
       });
   };
 
@@ -213,20 +229,59 @@ function AddSheetComponent({ closeSidebar, setRefresh, accessToken, setDisplayDa
 
         {columns.map((column, index) => (
           <div key={index} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <input
-              type="text"
-              value={column}
-              onChange={(e) => handleColumnChange(index, e.target.value)}
-              style={{ width: "200px", padding: "5px", border: "1px solid #ccc", borderRadius: "5px" }}
-            />
-            <button type="button" onClick={() => removeColumn(index)} style={{ backgroundColor: "red", color: "white", border: "none", padding: "5px", cursor: "pointer" }}>X</button>
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <input
+                type="text"
+                value={column}
+                onChange={(e) => handleColumnChange(index, e.target.value)}
+                disabled={index < 2}
+                title={index < 2 ? "These columns are required and cannot be modified" : ""}
+                style={{ 
+                  width: "200px", 
+                  padding: "5px", 
+                  border: "1px solid #ccc", 
+                  borderRadius: "5px",
+                  backgroundColor: index < 2 ? "#e9ecef" : "white",
+                  color: index < 2 ? "#495057" : "black",
+                  cursor: index < 2 ? "not-allowed" : "text",
+                  position: "relative"
+                }}
+              />
+              {index < 2 && (
+                <div style={{
+                  position: "absolute",
+                  right: "-20px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#6c757d",
+                  fontSize: "14px"
+                }}>🔒</div>
+              )}
+            </div>
+            <button 
+              type="button" 
+              onClick={() => removeColumn(index)} 
+              disabled={index < 2}
+              title={index < 2 ? "These columns cannot be removed" : "Remove column"}
+              style={{ 
+                backgroundColor: index < 2 ? "#cccccc" : "red", 
+                color: "white", 
+                border: "none", 
+                padding: "5px", 
+                cursor: index < 2 ? "not-allowed" : "pointer",
+                opacity: index < 2 ? 0.5 : 1
+              }}
+            >X</button>
           </div>
         ))}
         <button type="button" onClick={addColumn} style={{ width: "250px", padding: "8px", backgroundColor: "green", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Add Column</button>
 
-        <button type="submit" style={{ width: "250px", padding: "8px", backgroundColor: "#007BFF", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Create Sheet</button>
+        <button type="submit" onClick={handleSubmit} style={{ width: "250px", padding: "8px", backgroundColor: "#007BFF", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Create Sheet</button>
         <p style={{ fontSize: "0.8em", color: "#666", marginTop: "5px" }}>
           {rowCount} rows will be imported
+        </p>
+        <p style={{ fontSize: "0.8em", color: "#666", marginTop: "5px" }}>
+          <span style={{ color: "#dc3545" }}>*</span> First two columns are required and cannot be modified
         </p>
       </form>
     </div>
@@ -235,7 +290,6 @@ function AddSheetComponent({ closeSidebar, setRefresh, accessToken, setDisplayDa
 
 AddSheetComponent.propTypes = {
   closeSidebar: PropTypes.func.isRequired,
-  setRefresh: PropTypes.func.isRequired,
   accessToken: PropTypes.string.isRequired,
   setDisplayData: PropTypes.func.isRequired,
   setSelectedSheetId: PropTypes.func.isRequired,

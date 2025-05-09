@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 
-function StudentSearch({ data, setDisplayData, sidebarContentIndex, selectedSheetId, setSearchValue, searchValue }) {
+function StudentSearch({ data, setDisplayData, selectedSheetId, setSearchValue, searchValue }) {
   const originalDataRef = useRef(null);
 
   const applyFilter = () => {
@@ -19,26 +19,22 @@ function StudentSearch({ data, setDisplayData, sidebarContentIndex, selectedShee
 
     const firstNameColumn = "Student First";
     const lastNameColumn = "Student Last";
-    const fullNameColumn = "Student Name";
 
     let firstNameIndex = allData.columns.indexOf(firstNameColumn);
     let lastNameIndex = allData.columns.indexOf(lastNameColumn);
-    let fullNameIndex = allData.columns.indexOf(fullNameColumn);
 
     const filteredDataRows = allData.rows.filter((dataRow) => {
       if (searchValue === "") {
         return true;
       }
 
-      if (firstNameIndex >= allData.columns.length || lastNameIndex >= allData.columns.length || fullNameIndex >= allData.columns.length) {
-        console.log("Column not found");
+      if (firstNameIndex >= allData.columns.length || lastNameIndex >= allData.columns.length) {
         return false;
       }
 
       // Check if the first, last, or full name contains the search value
       const firstNameData = dataRow["Student First"] || "";
       const lastNameData = dataRow["Student Last"] || "";
-      const fullNameData = dataRow["Student Name"] || "";
 
       const firstName = firstNameData
         ? firstNameData.toLowerCase().includes(searchValue.toLowerCase())
@@ -48,9 +44,9 @@ function StudentSearch({ data, setDisplayData, sidebarContentIndex, selectedShee
         ? lastNameData.toLowerCase().includes(searchValue.toLowerCase())
         : false;
 
-      const fullName = fullNameData
-        .toLowerCase()
-        .includes(searchValue.toLowerCase());
+      const fullName = (firstNameData + " " + lastNameData)
+        ? (firstNameData + " " + lastNameData).toLowerCase().includes(searchValue.toLowerCase())
+        : false;
 
       return firstName || lastName || fullName;
     });
@@ -68,7 +64,7 @@ function StudentSearch({ data, setDisplayData, sidebarContentIndex, selectedShee
   }, [searchValue, selectedSheetId]);
 
   return (
-    <div style={{ position: 'relative', display: sidebarContentIndex === 1 ? 'none' : 'block' }}>
+    <div>
       <input
         onChange={(event) => {
           setSearchValue(event.target.value);
@@ -104,7 +100,6 @@ function StudentSearch({ data, setDisplayData, sidebarContentIndex, selectedShee
 StudentSearch.propTypes = {
   data: PropTypes.array.isRequired,
   setDisplayData: PropTypes.func.isRequired,
-  sidebarContentIndex: PropTypes.number.isRequired,
   selectedSheetId: PropTypes.string.isRequired,
   setSearchValue: PropTypes.func.isRequired,
   searchValue: PropTypes.string.isRequired,

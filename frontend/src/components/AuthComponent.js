@@ -24,10 +24,8 @@ const AuthComponent = ({ setRefresh }) => {
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log(data);
-
         if (!data.success) {
-          console.log("Authentication failed");
+          console.error("Authentication failed");
           setError(data.message);
           return;
         }
@@ -56,10 +54,8 @@ const AuthComponent = ({ setRefresh }) => {
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log(data);
-
         if (!data.success) {
-          console.log("Registration failed");
+          console.error("Registration failed");
           setError(data.message);
           return;
         }
@@ -75,7 +71,7 @@ const AuthComponent = ({ setRefresh }) => {
     event.preventDefault();
     // Handle sign in or sign up logic here
     if (isSignUp && password !== confirmPassword) {
-      console.log("Passwords do not match");
+      console.error("Passwords do not match");
       return;
     }
     if (isSignUp) {

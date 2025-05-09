@@ -9,14 +9,10 @@ function FilterComponent({ data, setFilteredData }) {
 
   // Retrieve saved selected columns from cookies on load
   useEffect(() => {
-    console.log('FilterComponent mounting...');
     const savedSelectedSheetIds = getJSONCookie("filterSelectedSheetIds") || [];
-    console.log('Retrieved savedSelectedSheetIds from cookie:', savedSelectedSheetIds);
-    console.log('Raw cookie value:', document.cookie);
     setSelectedSheetIds(savedSelectedSheetIds);
 
     const savedFilters = getJSONCookie("filterSelectedColumns") || [];
-    console.log('Retrieved savedFilters from cookie:', savedFilters);
     setFilters(savedFilters);
   }, []);
 
@@ -67,12 +63,47 @@ function FilterComponent({ data, setFilteredData }) {
 
     // Combine data from selected sheets
     let filteredData = {
-      columns: selectedSheets.map(sheet => sheet.columns).flat(),
-      rows: selectedSheets.map(sheet => sheet.rows).flat()
+      columns: [],
+      rows: []
     };
 
-    // Remove duplicates from columns
-    filteredData.columns = [...new Set(filteredData.columns)];
+    // Get all unique columns from selected sheets
+    selectedSheets.forEach(sheet => {
+      sheet.columns.forEach(column => {
+        if (!column.startsWith('_') && !filteredData.columns.includes(column)) {
+          filteredData.columns.push(column);
+        }
+      });
+    });
+
+    // Create a map to store unique students by first and last name
+    const studentMap = new Map();
+
+    // Process all selected sheets to combine student data
+    selectedSheets.forEach(sheet => {
+      sheet.rows.forEach(row => {
+        const firstName = row["Student First"] || "";
+        const lastName = row["Student Last"] || "";
+        const studentKey = `${firstName.toLowerCase()}-${lastName.toLowerCase()}`;
+
+        if (studentMap.has(studentKey)) {
+          // Merge with existing student data
+          const existingStudent = studentMap.get(studentKey);
+          filteredData.columns.forEach(column => {
+            if (row[column] && !existingStudent[column]) {
+              existingStudent[column] = row[column];
+            }
+          });
+        } else {
+          // Add new student
+          const newStudent = { ...row };
+          studentMap.set(studentKey, newStudent);
+        }
+      });
+    });
+
+    // Convert the map values to an array for the combined rows
+    filteredData.rows = Array.from(studentMap.values());
 
     // Apply filters
     filters.forEach((filter) => {
@@ -91,21 +122,9 @@ function FilterComponent({ data, setFilteredData }) {
   useEffect(() => {
     if (!data || data.length === 0) return;
 
-    const selectedSheets = data.filter(sheet => selectedSheetIds.includes(sheet._id));
-    
-    if (selectedSheets.length > 0) {
-      // Get unique columns from all selected sheets
-      const allColumns = selectedSheets.map(sheet => sheet.columns).flat();
-      setColumns([...new Set(allColumns)]);
-    } else {
-      setColumns([]);
-    }
-  }, [selectedSheetIds, data]);
-
-  // Apply filters when data, filters, or selected sheets change
-  useEffect(() => {
     applyFilters();
-  }, [data, filters, selectedSheetIds]);
+  }, [selectedSheetIds, data, filters]);
+
 
   const handleSelectAllSheets = () => {
     const allSheetIds = data.map(sheet => sheet._id);

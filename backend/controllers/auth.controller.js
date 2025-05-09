@@ -10,9 +10,6 @@ const register = asyncHandler(async (req, res) => {
   //Destructuing the inputs from req.body
   const { fullName, email, password, registerToken } = req.body;
 
-  console.log(registerToken);
-  console.log(process.env.REGISTER_TOKEN);
-
   if (registerToken !== process.env.REGISTER_TOKEN) {
     return res.status(403).json({
       message: "Access Denied",
@@ -107,7 +104,7 @@ const login = asyncHandler(async (req, res) => {
           //Signign the token with the JWT_SECRET in the .env
           process.env.JWT_SECRET,
           {
-            expiresIn: "1h",
+            expiresIn: "24h",
           }
         );
         return res.status(200).json({
@@ -158,7 +155,6 @@ const users = asyncHandler(async (req, res) => {
   //Fetching all users from database
   try {
     const users = await userModel.find();
-    console.log(users);
     return res.status(200).json({
       data: users,
       sucess: true,

@@ -43,11 +43,9 @@ function ModifyStudentComponent({ data, closeSidebar, selectedRowId, setRefresh,
         throw new Error("Failed to update student data");
       }
 
-      const result = await response.json();
-      console.log("Success:", result);
       alert("Student updated successfully!");
       closeSidebar();
-      setRefresh((prev) => !prev); // Trigger a refresh to update the data
+       // Trigger a refresh to update the data
     } catch (error) {
       console.error("Error:", error);
       alert("Failed to update student.");

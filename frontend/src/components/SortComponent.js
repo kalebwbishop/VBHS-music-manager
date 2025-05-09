@@ -1,29 +1,34 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { useSelector } from "react-redux";
 
 function SortComponent({ data, setSortedData }) {
-  const settings = useSelector((state) => state.settings.value);
-
   const [sortConfig, setSortConfig] = useState([
     { column: "", direction: "asc" },
     { column: "", direction: "asc" },
     { column: "", direction: "asc" },
   ]);
 
-  const headers = data[0] || [];
+  const headers = data.columns || [];
 
   const activeHeaders = headers.filter(
-    (header) => settings?.sortColumns[header]?.active || true
+    (header) => header === "Grade" || 
+                header === "Student First" || 
+                header === "Student Last" ||
+                header === "Student Name" ||
+                header === "Instrument" ||
+                header === "Part" ||
+                header === "Ensemble"
   );
 
   const applySorting = () => {
-    const headerRow = data[0];
-    const dataRows = data.slice(1);
+    const sortedData = {
+      columns: data.columns,
+    }
 
-    const sortedData = [...dataRows].sort((a, b) => {
+    sortedData.rows = data.rows.sort((a, b) => {
       for (const config of sortConfig) {
-        const column = headerRow.indexOf(config.column);
+        if (!config.column) continue; // Skip empty column selections
+        
         const direction = config.direction === "asc" ? 1 : -1;
 
         const parseValue = (val) => {
@@ -31,8 +36,8 @@ function SortComponent({ data, setSortedData }) {
           return isNaN(num) ? val : num;
         };
 
-        const aValue = parseValue(a[column]);
-        const bValue = parseValue(b[column]);
+        const aValue = parseValue(a[config.column]);
+        const bValue = parseValue(b[config.column]);
 
         if (aValue < bValue) {
           return -1 * direction;
@@ -46,7 +51,7 @@ function SortComponent({ data, setSortedData }) {
       return 0;
     });
 
-    setSortedData([headerRow, ...sortedData]);
+    setSortedData(sortedData);
   };
 
   const handleSortChange = (idx, field, value) => {
@@ -58,17 +63,6 @@ function SortComponent({ data, setSortedData }) {
       return { ...config, [field]: value };
     });
 
-    setSortConfig(updatedSortConfig);
-  };
-
-  const addSortLevel = () => {
-    if (sortConfig.length < 3) {
-      setSortConfig([...sortConfig, { column: "", direction: "asc" }]);
-    }
-  };
-
-  const removeSortLevel = (idx) => {
-    const updatedSortConfig = sortConfig.filter((_, i) => i !== idx);
     setSortConfig(updatedSortConfig);
   };
 
@@ -106,7 +100,10 @@ function SortComponent({ data, setSortedData }) {
 }
 
 SortComponent.propTypes = {
-  data: PropTypes.array.isRequired,
+  data: PropTypes.shape({
+    columns: PropTypes.arrayOf(PropTypes.string).isRequired,
+    rows: PropTypes.arrayOf(PropTypes.object).isRequired,
+  }).isRequired,
   setSortedData: PropTypes.func.isRequired,
 };
 

@@ -36,7 +36,6 @@ async function getSheetsRows(req, res) {
         }));
 
         res.json(responseData);
-        console.log(responseData);
     } catch (error) {
         console.error("Error fetching all sheets:", error);
         res.status(500).json({ message: "Error fetching sheets", error });
@@ -130,11 +129,7 @@ async function deleteSheet(req, res) {
 
         // Then delete all associated rows
         const result = await SheetRow.deleteMany({ sheetId });
-        if (result.deletedCount === 0) {
-            console.log("No rows found to delete for sheet:", sheetId);
-        } else {
-            console.log(`Deleted ${result.deletedCount} rows for sheet:`, sheetId);
-        }
+
         res.status(200).json({ message: "Sheet deleted successfully" });
     } catch (error) {
         console.error("Error deleting sheet:", error);
@@ -146,8 +141,7 @@ async function deleteSheet(req, res) {
 // Add new row
 async function addSheetRow(req, res) {
     try {
-
-        const { sheetId } = req.params; // Assuming the sheet ID is passed as a URL parameter
+        const { sheetId } = req.params;
         const sheet = await Sheet.findById(sheetId);
         if (!sheet) {
             return res.status(404).json({ message: "Sheet not found" });
@@ -157,31 +151,37 @@ async function addSheetRow(req, res) {
 
         if (Array.isArray(requestBody)) {
             // Batch insert
-            const encryptedRows = requestBody.map(student => {
-                return {
-                    sheetId: sheet._id,
-                    data: encryptObject(student)
-                }
+            const encryptedRows = requestBody.map(student => ({
+                sheetId: sheet._id,
+                data: encryptObject(student)
+            }));
+
+            // Build $or conditions to check for existing students
+            const matchConditions = encryptedRows.map(row => ({
+                sheetId: sheet._id,
+                'data.Student First': row.data['Student First'],
+                'data.Student Last': row.data['Student Last']
+            }));
+
+            const existingStudents = await SheetRow.find({ $or: matchConditions });
+
+            const existingMap = new Map();
+            existingStudents.forEach(student => {
+                const key = `${student.data['Student First']}|${student.data['Student Last']}`;
+                existingMap.set(key, student);
             });
-            // Check for existing students first
-            const existingStudents = await Promise.all(
-                encryptedRows.map(row => 
-                    SheetRow.findOne({
-                        sheetId: sheet._id,
-                        'data.Student Name': row.data['Student Name']
-                    })
-                )
-            );
 
-            // Update existing students and create new ones
-            const studentsToCreate = [];
             const updatePromises = [];
+            const studentsToCreate = [];
 
-            encryptedRows.forEach((row, index) => {
-                if (existingStudents[index]) {
+            encryptedRows.forEach(row => {
+                const key = `${row.data['Student First']}|${row.data['Student Last']}`;
+                const existing = existingMap.get(key);
+
+                if (existing) {
                     updatePromises.push(
                         SheetRow.findByIdAndUpdate(
-                            existingStudents[index]._id,
+                            existing._id,
                             { data: row.data },
                             { new: true }
                         )
@@ -197,35 +197,37 @@ async function addSheetRow(req, res) {
             ]);
 
             const allStudents = [...updatedStudents, ...newStudents];
-            res.status(201).json({ message: "Students added successfully", students: newStudents });
+            res.status(201).json({ message: "Students added successfully", students: allStudents });
+
         } else {
             // Single insert
             const encryptedData = encryptObject(requestBody);
-            
-            const newStudent = new SheetRow({
-                sheetId: sheet._id,
-                data: encryptedData
-            });
-            // Check if student with same name already exists
+
             const existingStudent = await SheetRow.findOne({
                 sheetId: sheet._id,
-                'data.Student Name': encryptedData['Student Name']
+                'data.Student First': encryptedData['Student First'],
+                'data.Student Last': encryptedData['Student Last']
             });
 
+            let resultStudent;
             if (existingStudent) {
-                // Update existing student
                 existingStudent.data = encryptedData;
                 await existingStudent.save();
-                newStudent = existingStudent;
+                resultStudent = existingStudent;
             } else {
-                // Save new student
-                await newStudent.save();
+                resultStudent = new SheetRow({
+                    sheetId: sheet._id,
+                    data: encryptedData
+                });
+                await resultStudent.save();
             }
-            res.status(201).json({ message: "Student added successfully", student: newStudent });
+
+            res.status(201).json({ message: "Student added successfully", student: resultStudent });
         }
+
     } catch (error) {
         console.error("Error adding student(s):", error);
-        res.status(400).json({ message: "Error adding student(s)", error });
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
 }
 
@@ -260,8 +262,6 @@ async function deleteSheetRow(req, res) {
         if (!rowId) {
             return res.status(400).json({ message: "ID is required" });
         }
-
-        console.log("Deleting student with ID:", rowId);
 
         const deletedStudent = await SheetRow.findByIdAndDelete(rowId);
 

@@ -12,14 +12,17 @@ function AddStudentComponent({
 }) {
   const [csvData, setCsvData] = useState(null);
   const [rowCount, setRowCount] = useState(0);
-  const [useKeyHeaders, setUseKeyHeaders] = useState(true);
+  const [hasHeaders, setHasHeaders] = useState(true);
   const [rawCsvData, setRawCsvData] = useState(null);
+  const [addMultiple, setAddMultiple] = useState(false);
 
-  if (!data || data.length === 0) {
+  const selectedSheet = data.find((sheet) => sheet._id === selectedSheetId);
+
+  if (!selectedSheet || selectedSheet.length === 0) {
     return <p>No student data available.</p>;
   }
 
-  const sheetHeaders = data.columns.filter((cell) => cell.charAt(0) !== "_");
+  const sheetHeaders = selectedSheet.columns.filter((cell) => cell.charAt(0) !== "_");
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -45,9 +48,16 @@ function AddStudentComponent({
         return response.json();
       })
       .then((data) => {
+        if (!addMultiple) {
+          closeSidebar();
+        }
         e.target.reset();
+        // Restore the checkbox state after form reset
+        const addMoreCheckbox = e.target.querySelector('#addMore');
+        if (addMoreCheckbox) {
+          addMoreCheckbox.checked = addMultiple;
+        }
         alert("Student added successfully!");
-        closeSidebar();
         setRefresh((prev) => !prev); // Trigger a refresh to update the data
       })
       .catch((error) => {
@@ -55,27 +65,36 @@ function AddStudentComponent({
       });
   };
 
-  const parseCSVData = (rawCsvData, useKeyHeaders) => {
-
-    const sheetHeaderToCsvHeaderMap = {};
-
-    sheetHeaders.forEach((header, _) => {
-      sheetHeaderToCsvHeaderMap[header] = rawCsvData[0].indexOf(header);
-    });
+  const parseCSVData = (rawCsvData, hasHeaders) => {
+    // Create a mapping of sheet headers to CSV column indices
+    const headerToIndexMap = {};
+    
+    if (hasHeaders) {
+      // Create mapping of CSV headers to their indices
+      const headerRow = rawCsvData[0];
+      headerRow.forEach((header, index) => {
+        headerToIndexMap[header.toLowerCase()] = index;
+      });
+    }
 
     const parsedStudents = rawCsvData.map((row, rowIndex) => {
+      // Skip header row if hasHeaders is true
+      if (hasHeaders && rowIndex === 0) return null;
+
       const student = {};
-      if (useKeyHeaders) {
-        sheetHeaders.forEach((header, index) => {
-          if (rowIndex !== 0) {
-            student[header] = row[sheetHeaderToCsvHeaderMap[header]] || "";
-          }
-        });
-      } else {
-        sheetHeaders.forEach((header, index) => {
+      
+      // Map each sheet header to its corresponding CSV data
+      sheetHeaders.forEach((header) => {
+        if (hasHeaders) {
+          // When using headers, look up the index in our mapping
+          const csvIndex = headerToIndexMap[header.toLowerCase()];
+          student[header] = csvIndex !== undefined ? row[csvIndex] || "" : "";
+        } else {
+          // When not using headers, use the default index-based mapping
+          const index = sheetHeaders.indexOf(header);
           student[header] = row[index] || "";
-        });
-      }
+        }
+      });
 
       // Check if all fields are blank, if so, don't add the student
       if (Object.values(student).every(value => value === "")) {
@@ -98,10 +117,10 @@ function AddStudentComponent({
   const toggleHeaders = () => {
     if (!rawCsvData) return;
 
-    const newUseKeyHeaders = !useKeyHeaders;
-    setUseKeyHeaders(newUseKeyHeaders);
+    const newHasHeaders = !hasHeaders;
+    setHasHeaders(newHasHeaders);
 
-    parseCSVData(rawCsvData, newUseKeyHeaders);
+    parseCSVData(rawCsvData, newHasHeaders);
   };
 
   const handleCSVUpload = (event) => {
@@ -111,10 +130,8 @@ function AddStudentComponent({
     Papa.parse(file, {
       complete: (result) => {
         const csvRows = result.data;
-
         setRawCsvData(csvRows);
-
-        parseCSVData(csvRows, useKeyHeaders);
+        parseCSVData(csvRows, hasHeaders);
       },
       header: false,
     });
@@ -123,33 +140,66 @@ function AddStudentComponent({
   const handleCSVSubmit = () => {
     if (!csvData) return;
 
-    fetch(
-      `${window.env.REACT_APP_BACKEND_URL}/api/sheet/${selectedSheetId}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(csvData),
+    // Ensure each student has both first and last name fields
+    const validatedData = csvData.map(student => {
+      if (!student["Student First"] || !student["Student Last"]) {
+        throw new Error("Each student must have both 'Student First' and 'Student Last' fields");
       }
-    )
-      .then((response) => {
-        if (response.status !== 201) {
-          throw new Error("Network response was not ok");
+      // Create a combined Student Name field for the backend
+      return {
+        ...student,
+      };
+    });
+
+    // Use existing sheet data to check for duplicates
+    const existingStudents = new Set(
+      selectedSheet.rows.map(row => row["Student First"] + " " + row["Student Last"])
+    );
+
+    const studentsToUpdate = validatedData.filter(
+      student => existingStudents.has(student["Student First"] + " " + student["Student Last"])
+    );
+    const studentsToAdd = validatedData.filter(
+      student => !existingStudents.has(student["Student First"] + " " + student["Student Last"])
+    );
+
+    const confirmMessage = `Import Summary:\n` +
+      `- ${studentsToAdd.length} new students to be added\n` +
+      `- ${studentsToUpdate.length} existing students to be updated\n\n` +
+      `Do you want to proceed?`;
+
+    if (window.confirm(confirmMessage)) {
+      // Proceed with the import
+      fetch(
+        `${window.env.REACT_APP_BACKEND_URL}/api/sheet/${selectedSheetId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(validatedData),
         }
-        return response.json();
-      })
-      .then((data) => {
-        alert("Students added successfully!");
-        setRefresh((prev) => !prev); // Trigger a refresh to update the data
-        closeSidebar();
-        setCsvData(null);
-        setRowCount(0);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-      });
+      )
+        .then((response) => {
+          if (response.status !== 201) {
+            throw new Error("Network response was not ok");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          alert(`Import completed successfully!\n` +
+            `- ${studentsToAdd.length} new students added\n` +
+            `- ${studentsToUpdate.length} existing students updated`);
+          closeSidebar();
+          setCsvData(null);
+          setRowCount(0);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert(error.message || "Error adding/updating students");
+        });
+    }
   };
 
   return (
@@ -166,10 +216,10 @@ function AddStudentComponent({
             onChange={handleCSVUpload}
           />
         </div>
-        {rowCount > 0 && (
+        {csvData && (
           <>
             <p style={{ fontSize: "0.8em", color: "#666", marginTop: "5px" }}>
-              {rowCount} students will be imported
+              {rowCount} students
             </p>
             <button
               type="button"
@@ -184,7 +234,7 @@ function AddStudentComponent({
                 marginTop: "5px"
               }}
             >
-              {useKeyHeaders ? "Use CSV Headers as Keys" : "Use Indexed Headers"}
+              {hasHeaders ? "Use Placeholder Headers" : "Use First Row as Headers"}
             </button>
             <p style={{ fontSize: "0.8em", color: "#666", marginTop: "5px" }}>
               The students on the left will be added to the sheet.
@@ -228,20 +278,34 @@ function AddStudentComponent({
             />
           </div>
         ))}
-        <button
-          type="submit"
-          style={{
-            width: "250px",
-            padding: "8px",
-            backgroundColor: "#007BFF",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Add Student
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <button
+            type="submit"
+            style={{
+              width: "250px",
+              padding: "8px",
+              backgroundColor: "#007BFF",
+              color: "white",
+              border: "none", 
+              borderRadius: "5px",
+              cursor: "pointer",
+            }}
+          >
+            Add Student
+          </button>
+          <div style={{ display: "flex", alignItems: "center", marginLeft: "10px" }}>
+            <input
+              type="checkbox"
+              id="addMore"
+              checked={addMultiple}
+              onChange={(e) => setAddMultiple(e.target.checked)}
+              style={{ cursor: "pointer" }}
+            />
+            <label htmlFor="addMore" style={{ cursor: "pointer" }}>
+              Add multiple
+            </label>
+          </div>
+        </div>
       </form>
     </div>
   );
