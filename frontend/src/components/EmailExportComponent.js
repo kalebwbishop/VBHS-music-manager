@@ -6,7 +6,7 @@ import EmailComponent from "./EmailComponent";
 import ExportComponent from "./ExportComponent";
 import SortComponent from "./SortComponent";
 
-function EmailExportComponent({ data, setDisplayData }) {
+function EmailExportComponent({ data, setDisplayData, accessToken }) {
     const [currentStep, setCurrentStep] = useState(0);
     const [stepStack, setStepStack] = useState([0]);
 
@@ -39,7 +39,7 @@ function EmailExportComponent({ data, setDisplayData }) {
     const sidebarContentList = [
         <FilterComponent key="filter" data={data} setFilteredData={setFilteredData} />,
         <EmailorExportComponent key="emailOrExport" handleNextClick={handleNextClick}/>,
-        <EmailComponent key="email" data={filteredData} />,
+        <EmailComponent key="email" data={filteredData} accessToken={accessToken} />,
         <SortComponent key="sort" data={filteredData} setSortedData={setDisplayData} />,
         <ExportComponent key="export" data={filteredData} />,
     ];
@@ -97,6 +97,7 @@ function EmailExportComponent({ data, setDisplayData }) {
 EmailExportComponent.propTypes = {
     data: PropTypes.array.isRequired,
     setDisplayData: PropTypes.func.isRequired,
+    accessToken: PropTypes.string.isRequired,
 };
 
 const EmailorExportComponent = ({handleNextClick}) => {

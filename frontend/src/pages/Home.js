@@ -210,6 +210,7 @@ const Home = () => {
                         <EmailExportComponent
                           data={data}
                           setDisplayData={setDisplayData}
+                          accessToken={accessToken}
                         />
                       );
                       setSidebarTitle("Email/Export");

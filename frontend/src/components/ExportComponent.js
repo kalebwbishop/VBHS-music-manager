@@ -64,10 +64,10 @@ function ExportComponent({ data }) {
     const selectedColumnNames = selectedColumns.map(index => data.columns[index]);
     const content = [
       // Add headers as first row
-      selectedColumnNames.map(header => `"${header}"`).join(delimiter),
+      selectedColumnNames.map(header => fileType === 'csv' ? `"${header}"` : header).join(delimiter),
       // Add data rows
       ...filteredData.map(
-        (row) => Object.values(row).map((item) => `"${item}"`).join(delimiter)
+        (row) => Object.values(row).map((item) => fileType === 'csv' ? `"${item}"` : item).join(delimiter)
       )
     ].join("\n"); // Join all rows with newlines
 

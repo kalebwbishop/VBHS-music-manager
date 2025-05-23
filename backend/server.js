@@ -2,10 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const sheetRoutes = require("./routes/sheetRoutes");
 const auth = require("./routes/auth.routes");
+const extraEmailsRoutes = require("./routes/extraEmailsRoutes");
 const { DB_Connect } = require("./database");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // CORS Configuration
 const corsOptions = {
@@ -33,6 +34,7 @@ DB_Connect()
 // Routes
 app.use("/api/sheet", sheetRoutes);
 app.use("/api/auth", auth)
+app.use("/api/extra-emails", extraEmailsRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: `Hello world, database is${db_is_connected ? "" : " not"} connected` });
