@@ -133,7 +133,7 @@ function EmailComponent({ data, accessToken }) {
         studentCount = data.rows.filter(row => row["Student Email"]).length;
       }
       if (sendToParents) {
-        parentCount = data.rows.filter(row => row["Parent 1 email"] || row["Parent 2 email"]).length;
+        parentCount = data.rows.filter(row => row["Parent 1 Email"] || row["Parent 2 Email"]).length;
       }
       if (sendToDirectors) {
         directorCount = selectedEmails.director.length;
@@ -155,7 +155,7 @@ function EmailComponent({ data, accessToken }) {
 
     if (sendToParents) {
       emails = emails.concat(
-        data.rows.map(row => [row["Parent 1 email"], row["Parent 2 email"]]).flat().filter(Boolean)
+        data.rows.map(row => [row["Parent 1 Email"], row["Parent 2 Email"]]).flat().filter(Boolean)
       );
     }
 
