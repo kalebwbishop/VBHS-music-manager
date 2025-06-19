@@ -2,6 +2,7 @@ const crypto = require("crypto");
 require("dotenv").config();
 
 if (!process.env.ENCRYPTION_KEY) {
+    console.error("ENCRYPTION_KEY is missing! Current ENV:", process.env);
     throw new Error("ENCRYPTION_KEY is not set in the environment variables.");
 }
 
