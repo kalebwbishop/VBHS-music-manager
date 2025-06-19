@@ -1,6 +1,10 @@
 const crypto = require("crypto");
 require("dotenv").config();
 
+if (!process.env.ENCRYPTION_KEY) {
+    throw new Error("ENCRYPTION_KEY is not set in the environment variables.");
+}
+
 const secretKey = Buffer.from(process.env.ENCRYPTION_KEY, "hex"); // 32-byte key
 const iv = Buffer.alloc(16, 0); // 16-byte IV (Initialization Vector)
 
