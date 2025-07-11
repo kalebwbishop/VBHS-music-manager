@@ -2,7 +2,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
     environment:
@@ -16,6 +16,10 @@ services:
       - "5000:5000"
     environment:
       - MONGO_URI=mongodb://database:27017/mydatabase
+      - JWT_SECRET=2a6aeb55eb785e4c3986c6faacd4fc98e9d7ccd7a070610e2508fd31db72d4c1
+      - REGISTER_TOKEN=e6fddf3f
+      - ENCRYPTION_KEY=50e04790af03b967926e85db54908d6efcad701668860be8b25701531565badf
+      - PORT=5000
 
   database:
     build:
