@@ -10,8 +10,12 @@ const AuthComponent = ({ setRefresh }) => {
   const [registerToken, setRegisterToken] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const fetchSignIn = () => {
+  const fetchSignIn = async () => {
+    // Start sign-in request
+    setLoading(true);
+
     fetch(`${window.env.REACT_APP_BACKEND_URL}/api/auth/login`, {
       method: "POST",
       headers: {
@@ -36,10 +40,14 @@ const AuthComponent = ({ setRefresh }) => {
       })
       .catch((error) => {
         console.error("Error:", error);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
   const fetchSignUp = () => {
+    setLoading(true);
     fetch(`${window.env.REACT_APP_BACKEND_URL}/api/auth/register`, {
       method: "POST",
       headers: {
@@ -57,6 +65,7 @@ const AuthComponent = ({ setRefresh }) => {
         if (!data.success) {
           console.error("Registration failed");
           setError(data.message);
+          setLoading(false);
           return;
         }
 
@@ -64,6 +73,7 @@ const AuthComponent = ({ setRefresh }) => {
       })
       .catch((error) => {
         console.error("Error:", error);
+        setLoading(false);
       });
   };
 
@@ -85,6 +95,15 @@ const AuthComponent = ({ setRefresh }) => {
     <div className="auth-container">
       <h2>{isSignUp ? "Sign Up" : "Sign In"}</h2>
       {error && <p className="error-message">{error}</p>}
+      {loading && (
+        <div className="loading-indicator" style={{ marginBottom: "1rem", color: "#333" }}>
+          <span style={{ marginRight: 8 }}>⏳</span>
+          <strong>Please wait — signing in...</strong>
+          <div style={{ fontSize: "0.9rem", color: "#666" }}>
+            If the backend has been idle this may take longer to start (up to 30 seconds).
+          </div>
+        </div>
+      )}
       <div className="tab-container">
         <button
           onClick={() => setIsSignUp(false)}
